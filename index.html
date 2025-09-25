@@ -15,6 +15,7 @@
   <meta name="keywords" content="Opensource bar chart race generator">
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="css/favicon.png">
 </head>
@@ -53,18 +54,6 @@
 
                     <label class="custom-file-label" for="customFile" ref="filelabel">((fileplaceholder))</label>
                   </div>
-                </div>
-                <div class="form-group">
-                  <label for="duration">Animation duration (in s)</label>
-                  <input id="duration" v-model="duration" class="form-control" type="number" name="duration" min="0">
-                </div>
-                <div class="form-group">
-                  <label for="top_n">Number of bars to display</label>
-                  <input id="top_n" v-model="top_n" class="form-control" type="number" name="top_n" min="0">
-                </div>
-                <div class="form-group">
-                  <label for="title">Title</label>
-                  <input id="title" v-model="title" class="form-control" type="text" name="title">
                 </div>
                 <div class="form-group text-center">
                   <button type="button" v-if="!csv_data" class="btn btn-outline-primary disabled">Generate Bar Chart Race</button>
@@ -107,8 +96,9 @@
           <div class="text-right mb-4">
             <button type="button" class="btn btn-xs btn-outline-primary" v-on:click="stopRace">Stop</button>
             <button type="button" class="btn btn-xs btn-outline-primary" v-on:click="checkForm">Restart</button>
+            <button type="button" class="btn btn-xs btn-outline-primary" data-toggle="modal" data-target="#settingsModal">Settings</button>
           </div>
-          <h5 class="card-title" id="graph-title">((title))</h5>
+          <h5 class="card-title" id="graph-title" v-if="showChartTitle" :style="'font-family: ' + titleFontFamily + '; font-size: ' + titleFontSize + 'px; color: ' + titleColor + ';'">((title))</h5>
           <div id="chartDiv" style="width:100%; height: 650px"></div>
           <p style="position:absolute;top:50%;left:50%;font-size:1.125rem;transform: translate(-50%,-50%)" v-if="interval == null">Please upload data first</p>
         </div>
@@ -202,6 +192,363 @@
       </div>
     </div>
   </div>
+  <!-- Settings Modal -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="settingsLabel">
+            <i class="fas fa-cog"></i> Chart Settings
+          </h2>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Main Settings Row -->
+          <div class="row">
+            <!-- Left Column: Basic Settings -->
+            <div class="col-lg-4">
+              <div class="settings-card">
+                <h5 class="card-title">
+                  <i class="fas fa-sliders-h"></i> Basic Settings
+                </h5>
+                <div class="form-group">
+                  <label for="s_title">Chart Title</label>
+                  <input id="s_title" v-model="title" class="form-control" type="text" placeholder="Enter chart title">
+                </div>
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label for="s_duration">Duration (seconds)</label>
+                    <input id="s_duration" v-model="duration" class="form-control" type="number" min="1" max="300">
+                  </div>
+                  <div class="form-group col-6">
+                    <label for="s_top_n">Number of Bars</label>
+                    <input id="s_top_n" v-model="top_n" class="form-control" type="number" min="1" max="50">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_grid" v-model="showGridlines">
+                    <label class="custom-control-label" for="s_grid">
+                      <i class="fas fa-th"></i> Show grid lines
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_chart_title" v-model="showChartTitle">
+                    <label class="custom-control-label" for="s_chart_title">
+                      <i class="fas fa-heading"></i> Show Chart Title
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Bar Colors Section -->
+                <div class="color-settings">
+                  <h6 class="color-title">
+                    <i class="fas fa-palette"></i> Bar Colors
+                  </h6>
+                  
+                  <!-- Color Mode Selection -->
+                  <div class="form-group">
+                    <label class="control-label">Color Mode</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                      <input type="radio" class="btn-check" id="color_palette" v-model="barColorMode" value="palette">
+                      <label class="btn btn-outline-primary" for="color_palette">Palette</label>
+                      
+                      <input type="radio" class="btn-check" id="color_custom" v-model="barColorMode" value="custom">
+                      <label class="btn btn-outline-primary" for="color_custom">Custom</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Palette Selection -->
+                  <div v-if="barColorMode === 'palette'" class="form-group">
+                    <label for="s_palette">Color Palette</label>
+                    <select id="s_palette" v-model="selectedPalette" class="form-control">
+                      <option v-for="(colors, name) in availablePalettes" :key="name" :value="name">
+                        (( name.charAt(0).toUpperCase() + name.slice(1) ))
+                      </option>
+                    </select>
+                    
+                    <!-- Palette Preview -->
+                    <div class="palette-preview mt-2">
+                      <div class="palette-colors">
+                        <div v-for="(color, index) in availablePalettes[selectedPalette]" 
+                             :key="index" 
+                             class="color-swatch" 
+                             :style="{ backgroundColor: color }"
+                             :title="color">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Custom Colors -->
+                  <div v-if="barColorMode === 'custom'" class="form-group">
+                    <label class="control-label">Custom Colors</label>
+                    <div class="custom-colors-container">
+                      <div v-for="(color, index) in customColors" :key="index" class="custom-color-item">
+                        <input type="color" 
+                               v-model="customColors[index]" 
+                               class="form-control color-input-small"
+                               :title="'Color ' + (index + 1)">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-danger ml-2" 
+                                @click="removeCustomColor(index)"
+                                v-if="customColors.length > 1">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-primary mt-2" 
+                              @click="addCustomColor">
+                        <i class="fas fa-plus"></i> Add Color
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Column: Typography & Layout -->
+            <div class="col-lg-4">
+              <div class="settings-card">
+                <h5 class="card-title">
+                  <i class="fas fa-font"></i> Typography
+                </h5>
+                
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Bar Labels</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_label_font">Font</label>
+                      <select id="s_label_font" v-model="labelFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_label_size">Size</label>
+                      <input id="s_label_size" v-model.number="labelFontSize" class="form-control" type="number" min="8" max="32">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_label_color">Color</label>
+                      <input id="s_label_color" v-model="labelColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Chart Title</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_title_font">Font</label>
+                      <select id="s_title_font" v-model="titleFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_title_size">Size</label>
+                      <input id="s_title_size" v-model.number="titleFontSize" class="form-control" type="number" min="12" max="48">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_title_color">Color</label>
+                      <input id="s_title_color" v-model="titleColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Numbers</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_value_font">Font</label>
+                      <select id="s_value_font" v-model="valueFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_value_size">Size</label>
+                      <input id="s_value_size" v-model.number="valueFontSize" class="form-control" type="number" min="8" max="32">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_value_color">Color</label>
+                      <input id="s_value_color" v-model="valueColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                </div>
+
+                <h5 class="card-title mt-4">
+                  <i class="fas fa-arrows-alt-h"></i> Layout & Positioning
+                </h5>
+                
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-tag"></i> Label Position
+                  </label>
+                  <input id="s_label_position" v-model.number="labelPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                  <div class="range-labels">
+                    <span>Inside Bar</span>
+                    <span>Outside Bar</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-image"></i> Icon Spacing
+                  </label>
+                  <input id="s_icon_margin" v-model.number="iconMargin" class="form-control-range" type="range" min="-50" max="50" step="2">
+                  <div class="range-labels">
+                    <span>Close</span>
+                    <span>Far</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-hashtag"></i> Number Spacing
+                  </label>
+                  <input id="s_number_position" v-model.number="numberPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                  <div class="range-labels">
+                    <span>Close</span>
+                    <span>Far</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Live Preview -->
+            <div class="col-lg-4">
+              <div class="preview-card">
+                <h5 class="preview-title">
+                  <i class="fas fa-eye"></i> Live Preview
+                </h5>
+                <div class="preview-container">
+                  <div class="preview-header">
+                    <span class="preview-label-text">See how your changes look in real-time</span>
+                  </div>
+                  <svg id="previewSvg" width="100%" height="120" viewBox="0 0 400 120">
+                    <!-- Preview bar -->
+                    <rect class="preview-bar" x="20" :width="previewBarWidth" y="60" height="40" :fill="getBarColors()[0]" rx="3"></rect>
+                    <!-- Preview label -->
+                    <text class="preview-label" 
+                          :x="previewLabelX" 
+                          y="80" 
+                          :style="'font-family: ' + labelFontFamily + '; font-size: ' + labelFontSize + 'px; fill: ' + labelColor + ';'"
+                          text-anchor="end">Sample Label</text>
+                    <!-- Preview icon -->
+                    <image class="preview-icon" 
+                           :x="previewIconX" 
+                           y="70" 
+                           width="20" 
+                           height="20" 
+                           href="images/python.png"></image>
+                    <!-- Preview number -->
+                    <text class="preview-number" 
+                          :x="previewNumberX" 
+                          y="80" 
+                          :style="'font-family: ' + valueFontFamily + '; font-size: ' + valueFontSize + 'px; fill: ' + valueColor + ';'">1,234</text>
+                    <!-- Preview grid lines -->
+                    <line v-if="showGridlines" x1="20" y1="40" x2="20" y2="120" stroke="#cecece" stroke-width="1"></line>
+                    <line v-if="showGridlines" x1="200" y1="40" x2="200" y2="120" stroke="#cecece" stroke-width="1"></line>
+                    <line v-if="showGridlines" x1="380" y1="40" x2="380" y2="120" stroke="#cecece" stroke-width="1"></line>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme Presets Section - Compact -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <div class="presets-card">
+                <div class="presets-header">
+                  <h5 class="presets-title">
+                    <i class="fas fa-bookmark"></i> Theme Presets
+                  </h5>
+                  <div class="presets-actions">
+                    <div class="input-group input-group-sm">
+                      <input v-model="newPresetName" 
+                             class="form-control" 
+                             type="text" 
+                             placeholder="Preset name"
+                             maxlength="50">
+                      <div class="input-group-append">
+                        <button type="button" 
+                                class="btn btn-outline-success" 
+                                @click="savePreset"
+                                :disabled="!newPresetName.trim()">
+                          <i class="fas fa-save"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="btn-group btn-group-sm ml-2">
+                      <button type="button" 
+                              class="btn btn-outline-info" 
+                              @click="loadDefaultPreset"
+                              :disabled="!themePresets[defaultPresetName]">
+                        <i class="fas fa-home"></i>
+                      </button>
+                      <button type="button" 
+                              class="btn btn-outline-secondary" 
+                              @click="themePresets = {}; savePresetsToStorage(); currentPresetName = ''"
+                              v-if="Object.keys(themePresets).length > 0">
+                        <i class="fas fa-broom"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="presets-list">
+                  <div v-for="(preset, name) in themePresets" :key="name" class="preset-item">
+                    <div class="preset-info">
+                       <span class="preset-name" :class="{ 'default-preset': name === defaultPresetName }">
+                         (( name ))
+                         <i v-if="name === defaultPresetName" class="fas fa-star text-warning ml-1" title="Default Preset"></i>
+                       </span>
+                       <span class="preset-details">
+                         (( preset.title )) • (( preset.duration ))s • (( preset.top_n )) bars
+                       </span>
+                    </div>
+                    <div class="preset-actions">
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-primary" 
+                              @click="loadPreset(name)"
+                              title="Load Preset">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-warning" 
+                              @click="setAsDefault(name)"
+                              :disabled="name === defaultPresetName"
+                              title="Set as Default">
+                        <i class="fas fa-star"></i>
+                      </button>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger" 
+                              @click="deletePreset(name)"
+                              :disabled="name === defaultPresetName"
+                              title="Delete Preset">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="Object.keys(themePresets).length === 0" class="no-presets">
+                    <i class="fas fa-info-circle"></i>
+                    No presets saved yet. Save your current settings to create your first preset!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" v-on:click="applySettingsToChart">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -225,7 +572,76 @@
             tickDuration: 500,
             top_n: 10,
             title: "My bar chart",
-            fileplaceholder: "Choose file"
+            fileplaceholder: "Choose file",
+            showGridlines: true,
+            showChartTitle: true,
+            labelFontFamily: 'Open Sans',
+            labelFontSize: 16,
+            labelColor: '#202020',
+            titleFontFamily: 'Open Sans',
+            titleFontSize: 24,
+            titleColor: '#333333',
+            valueFontFamily: 'Open Sans',
+            valueFontSize: 16,
+            valueColor: '#505050',
+            iconMargin: 8,
+            numberPosition: 18,
+            labelPosition: 50,
+            barColorMode: 'palette', // 'palette' or 'custom'
+            selectedPalette: 'default',
+            customColors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'],
+            availablePalettes: {
+                'default': ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
+                'bright': ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43'],
+                'pastel': ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#e6b3ff', '#ffb3e6', '#b3d9ff', '#b3ffb3', '#ffd9b3'],
+                'dark': ['#2c3e50', '#34495e', '#7f8c8d', '#95a5a6', '#bdc3c7', '#ecf0f1', '#e74c3c', '#e67e22', '#f39c12', '#f1c40f'],
+                'monochrome': ['#2c3e50', '#34495e', '#7f8c8d', '#95a5a6', '#bdc3c7', '#ecf0f1', '#d5dbdb', '#aab7b8', '#85929e', '#5d6d7e']
+            },
+            availableFonts: [
+                'Open Sans',
+                'Arial',
+                'Helvetica',
+                'Times New Roman',
+                'Georgia',
+                'Verdana',
+                'Tahoma',
+                'Trebuchet MS',
+                'Arial Black',
+                'Impact',
+                'Comic Sans MS',
+                'Courier New',
+                'Lucida Console',
+                'Palatino',
+                'Garamond',
+                'Book Antiqua',
+                'Century Gothic',
+                'Franklin Gothic Medium',
+                'Lucida Sans Unicode',
+                'MS Sans Serif',
+                'MS Serif',
+                'Symbol',
+                'Webdings',
+                'Wingdings'
+            ],
+            // Theme Presets
+            themePresets: {},
+            currentPresetName: '',
+            newPresetName: '',
+            defaultPresetName: 'Default'
+        },
+        computed: {
+            previewBarWidth: function() {
+                return 200; // Fixed width for preview
+            },
+            previewLabelX: function() {
+                return 20 + this.previewBarWidth - this.labelPosition;
+            },
+            previewIconX: function() {
+                return 20 + this.previewBarWidth + this.iconMargin;
+            },
+            previewNumberX: function() {
+                return 20 + this.previewBarWidth + this.iconMargin + 20 + this.numberPosition; // 20 is icon width
+            }
         },
         methods: {
             loadExample: function (setting_name) {
@@ -280,13 +696,38 @@
                     return
                 }
                 if (self.tickDuration && self.top_n) {
-                    e.preventDefault();
+                    e && e.preventDefault();
                     this.top_n = parseInt(self.top_n);
                     this.duration = parseInt(self.duration);
                     this.tickDuration = self.duration / self.csv_data.length * 1000
                     let chartDiv = document.getElementById("chartDiv");
                     var data = JSON.parse(JSON.stringify(self.csv_data))
-                    self.interval = createBarChartRace(data, self.top_n, self.tickDuration);
+                    // optional icons mapping per category (example for StackOverflow languages)
+                    const icons = settings.iconsByCategory || {};
+                    self.interval = createBarChartRace(
+                        data,
+                        self.top_n,
+                        self.tickDuration,
+                        {
+                            icons: icons,
+                            iconSize: 45,
+                            iconGap: self.iconMargin,
+                            labelPadding: self.labelPosition,
+                            numberGap: self.numberPosition,
+                            showGridlines: !!self.showGridlines,
+                            labelTextStyle: {
+                                fontFamily: self.labelFontFamily,
+                                fontSize: self.labelFontSize,
+                                fill: self.labelColor
+                            },
+                            valueTextStyle: {
+                                fontFamily: self.valueFontFamily,
+                                fontSize: self.valueFontSize,
+                                fill: self.valueColor
+                            },
+                            colors: self.getBarColors()
+                        }
+                    );
                 }
 
                 self.errors = [];
@@ -300,9 +741,154 @@
                 if (!self.top_n) {
                     self.errors.push('Number of bars to display required.');
                 }
-                e.preventDefault();
+                e && e.preventDefault();
                 window.scrollTo({top: $("#chart-card").offset().top - 10, behavior: 'smooth'});
+            },
+            applySettingsToChart: function() {
+                // Blur the active element to avoid keeping focus inside hidden modal
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
+                // Defer until modal fully hides, then re-render
+                const self = this;
+                $('#settingsModal').modal('hide');
+                $('#settingsModal').one('hidden.bs.modal', function () {
+                    if (self.csv_data) {
+                        self.checkForm();
+                    }
+                });
+            },
+            addCustomColor: function() {
+                this.customColors.push('#ff6b6b');
+            },
+            removeCustomColor: function(index) {
+                this.customColors.splice(index, 1);
+            },
+            getBarColors: function() {
+                if (this.barColorMode === 'custom') {
+                    return this.customColors.length > 0 ? this.customColors : this.availablePalettes.default;
+                } else {
+                    return this.availablePalettes[this.selectedPalette];
+                }
+            },
+            // Theme Presets Methods
+            getCurrentSettings: function() {
+                return {
+                    title: this.title,
+                    duration: this.duration,
+                    top_n: this.top_n,
+                    showGridlines: this.showGridlines,
+                    showChartTitle: this.showChartTitle,
+                    titleFontFamily: this.titleFontFamily,
+                    titleFontSize: this.titleFontSize,
+                    titleColor: this.titleColor,
+                    labelFontFamily: this.labelFontFamily,
+                    labelFontSize: this.labelFontSize,
+                    labelColor: this.labelColor,
+                    valueFontFamily: this.valueFontFamily,
+                    valueFontSize: this.valueFontSize,
+                    valueColor: this.valueColor,
+                    iconMargin: this.iconMargin,
+                    numberPosition: this.numberPosition,
+                    labelPosition: this.labelPosition,
+                    barColorMode: this.barColorMode,
+                    selectedPalette: this.selectedPalette,
+                    customColors: [...this.customColors]
+                };
+            },
+            applySettings: function(settings) {
+                this.title = settings.title;
+                this.duration = settings.duration;
+                this.top_n = settings.top_n;
+                this.showGridlines = settings.showGridlines;
+                this.showChartTitle = settings.showChartTitle;
+                this.titleFontFamily = settings.titleFontFamily;
+                this.titleFontSize = settings.titleFontSize;
+                this.titleColor = settings.titleColor;
+                this.labelFontFamily = settings.labelFontFamily;
+                this.labelFontSize = settings.labelFontSize;
+                this.labelColor = settings.labelColor;
+                this.valueFontFamily = settings.valueFontFamily;
+                this.valueFontSize = settings.valueFontSize;
+                this.valueColor = settings.valueColor;
+                this.iconMargin = settings.iconMargin;
+                this.numberPosition = settings.numberPosition;
+                this.labelPosition = settings.labelPosition;
+                this.barColorMode = settings.barColorMode;
+                this.selectedPalette = settings.selectedPalette;
+                this.customColors = [...settings.customColors];
+            },
+            savePreset: function() {
+                if (!this.newPresetName.trim()) {
+                    alert('Please enter a preset name');
+                    return;
+                }
+                
+                const settings = this.getCurrentSettings();
+                this.themePresets[this.newPresetName] = settings;
+                this.savePresetsToStorage();
+                this.newPresetName = '';
+                alert('Preset saved successfully!');
+            },
+            loadPreset: function(presetName) {
+                if (this.themePresets[presetName]) {
+                    this.applySettings(this.themePresets[presetName]);
+                    this.currentPresetName = presetName;
+                    alert('Preset loaded successfully!');
+                }
+            },
+            deletePreset: function(presetName) {
+                if (presetName === this.defaultPresetName) {
+                    alert('Cannot delete the default preset');
+                    return;
+                }
+                
+                if (confirm(`Are you sure you want to delete the preset "${presetName}"?`)) {
+                    delete this.themePresets[presetName];
+                    this.savePresetsToStorage();
+                    if (this.currentPresetName === presetName) {
+                        this.currentPresetName = '';
+                    }
+                }
+            },
+            setAsDefault: function(presetName) {
+                if (this.themePresets[presetName]) {
+                    this.defaultPresetName = presetName;
+                    this.savePresetsToStorage();
+                    alert(`"${presetName}" is now the default preset`);
+                }
+            },
+            loadDefaultPreset: function() {
+                if (this.themePresets[this.defaultPresetName]) {
+                    this.applySettings(this.themePresets[this.defaultPresetName]);
+                    this.currentPresetName = this.defaultPresetName;
+                }
+            },
+            savePresetsToStorage: function() {
+                localStorage.setItem('barchartrace_presets', JSON.stringify(this.themePresets));
+                localStorage.setItem('barchartrace_default_preset', this.defaultPresetName);
+            },
+            loadPresetsFromStorage: function() {
+                const savedPresets = localStorage.getItem('barchartrace_presets');
+                const savedDefault = localStorage.getItem('barchartrace_default_preset');
+                
+                if (savedPresets) {
+                    this.themePresets = JSON.parse(savedPresets);
+                }
+                
+                if (savedDefault) {
+                    this.defaultPresetName = savedDefault;
+                }
+                
+                // Create default preset if none exists
+                if (!this.themePresets[this.defaultPresetName]) {
+                    this.themePresets[this.defaultPresetName] = this.getCurrentSettings();
+                    this.savePresetsToStorage();
+                }
             }
+        },
+        mounted: function() {
+            this.loadPresetsFromStorage();
         },
         delimiters: ["((", "))"]
 
@@ -351,6 +937,22 @@
             "top_n": 10,
             "title": "CO2 Emissions from Fossil Fuels per capita, between 1950 and 2014 (in metric tons)",
             "url": "https://raw.githubusercontent.com/FabDevGit/barchartrace/master/datasets/co2.csv"
+        },
+        // optional: example icons for StackOverflow languages
+        // provide full URLs or relative paths to icons you add under css/ or a new images/ folder
+        "iconsByCategory": {
+            "python": "images/python.png",
+            "c#": "images/csharp.png",
+            "c": "https://static.vecteezy.com/system/resources/previews/048/332/147/non_2x/c-programming-icon-free-png.png",
+            "javascript": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/javascript.svg",
+            "java": "images/java.png",
+            "php": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/php.svg",
+            "c++": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/cplusplus.svg",
+            "ruby": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/ruby.svg",
+            "objective-c": "images/objc.png",
+            "swift": "images/swift.png",
+            "r": "images/r.png",
+            "vb.net": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxfxJtZAoecgjxR1wKvE2o0pgTf2rysR9ppTpdi2H8jMavf02AT0OkJ_EMXAi5GoM_DIc&usqp=CAU"
         }
     }
 

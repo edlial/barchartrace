@@ -1,4 +1,4 @@
-function createBarChartRace(data, top_n, tickDuration) {
+function createBarChartRace(data, top_n, tickDuration, options) {
     var data = data;
     let chartDiv = document.getElementById("chartDiv");
     chartDiv.textContent = '';
@@ -24,6 +24,26 @@ function createBarChartRace(data, top_n, tickDuration) {
 
     let barPadding = (height - (margin.bottom + margin.top)) / (top_n * 5);
 
+    // options (icons + styling)
+    const resolvedOptions = options || {};
+    const iconUrlByName = resolvedOptions.icons || {};
+    const iconSize = resolvedOptions.iconSize || 18; // px
+    const iconGap = resolvedOptions.iconGap != null ? resolvedOptions.iconGap : 8; // px to the right of bar end
+    const labelPadding = resolvedOptions.labelPadding != null ? resolvedOptions.labelPadding : 10; // px inside bar end
+    const numberGap = resolvedOptions.numberGap != null ? resolvedOptions.numberGap : 18; // px to the right of icon
+    const showGridlines = resolvedOptions.showGridlines !== false; // default true
+    const labelTextStyle = resolvedOptions.labelTextStyle || {};
+    const valueTextStyle = resolvedOptions.valueTextStyle || {};
+    const customColors = resolvedOptions.colors || null;
+
+    const barEndX = (d) => x(d.value); // exact end of bar
+    const hasIcon = (d) => Boolean(iconUrlByName[d.name]);
+    const labelX = (d) => barEndX(d) - labelPadding; // text end just inside bar
+    const iconX = (d) => barEndX(d) + iconGap; // icon outside bar
+    const valueLabelX = (d) => hasIcon(d)
+        ? (barEndX(d) + iconGap + iconSize + numberGap)
+        : (barEndX(d) + numberGap);
+
     function getRowData(data, column_names, row_index) {
         const row = data[row_index];
         let new_data = column_names.map((name) => {
@@ -42,7 +62,15 @@ function createBarChartRace(data, top_n, tickDuration) {
 
     // define a random color for each column
     const colors = {};
-    const color_scale = d3.scaleOrdinal(d3.schemeSet3);
+    let color_scale;
+    
+    if (customColors && customColors.length > 0) {
+        // Use custom colors
+        color_scale = d3.scaleOrdinal(customColors);
+    } else {
+        // Use default D3 color scheme
+        color_scale = d3.scaleOrdinal(d3.schemeSet3);
+    }
 
     column_names.forEach((name, i) => {
         colors[name] = color_scale(i)
@@ -56,6 +84,16 @@ function createBarChartRace(data, top_n, tickDuration) {
         // convert other columns to numbers
         column_names.forEach((k) => d[k] = Number(d[k]))
 
+    });
+
+    // Calculate global maximum value across all time periods
+    let globalMax = 0;
+    data.forEach((d) => {
+        column_names.forEach((k) => {
+            if (d[k] > globalMax) {
+                globalMax = d[k];
+            }
+        });
     });
 
     // draw the first frame
@@ -74,7 +112,7 @@ function createBarChartRace(data, top_n, tickDuration) {
         .scale(t);
 
     let x = d3.scaleLinear()
-        .domain([0, d3.max(row_data, d => d.value)])
+        .domain([0, globalMax])
         .range([margin.left, width - margin.right]);
 
     let y = d3.scaleLinear()
@@ -84,16 +122,21 @@ function createBarChartRace(data, top_n, tickDuration) {
     let xAxis = d3.axisTop()
         .scale(x)
         .ticks(5)
-        .tickSize(-(height - margin.top - margin.bottom))
-        .tickFormat(d => d3.format(',')(d));
+        .tickSize(showGridlines ? -(height - margin.top - margin.bottom) : 0)
+        .tickFormat(showGridlines ? (d => d3.format(',')(d)) : (() => ''));
 
-
+    // always create x-axis, but control visibility with CSS
     svg.append('g')
         .attr('class', 'axis xAxis')
         .attr('transform', `translate(0, ${margin.top})`)
         .call(xAxis)
         .selectAll('.tick line')
         .classed('origin', d => d === 0);
+
+    // hide gridlines if disabled
+    if (!showGridlines) {
+        svg.select('.xAxis').style('display', 'none');
+    }
 
 
     svg.selectAll('rect.bar')
@@ -108,24 +151,43 @@ function createBarChartRace(data, top_n, tickDuration) {
         .style('fill', d => colors[d.name]);
 
 
-    svg.selectAll('text.label')
+    const labelsSel = svg.selectAll('text.label')
         .data(row_data, d => d.name)
         .enter()
         .append('text')
         .attr('class', 'label')
-        .attr('x', d => x(d.value) - 8)
+        .attr('x', d => labelX(d))
         .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
         .style('text-anchor', 'end')
         .html(d => d.name);
+    if (labelTextStyle.fontFamily) labelsSel.style('font-family', labelTextStyle.fontFamily);
+    if (labelTextStyle.fontSize) labelsSel.style('font-size', labelTextStyle.fontSize + 'px');
+    if (labelTextStyle.fill) labelsSel.style('fill', labelTextStyle.fill);
 
-    svg.selectAll('text.valueLabel')
+    // initial icons
+    svg.selectAll('image.icon')
+        .data(row_data.filter(d => hasIcon(d)), d => d.name)
+        .enter()
+        .append('image')
+        .attr('class', 'icon')
+        .attr('width', iconSize)
+        .attr('height', iconSize)
+        .attr('x', d => iconX(d))
+        .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2)
+        .attr('href', d => iconUrlByName[d.name])
+        .attr('xlink:href', d => iconUrlByName[d.name]);
+
+    const valueSel = svg.selectAll('text.valueLabel')
         .data(row_data, d => d.name)
         .enter()
         .append('text')
         .attr('class', 'valueLabel')
-        .attr('x', d => x(d.value) + 5)
+    .attr('x', d => valueLabelX(d))
         .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
         .text(d => d3.format(',.0f')(d.lastValue));
+    if (valueTextStyle.fontFamily) valueSel.style('font-family', valueTextStyle.fontFamily);
+    if (valueTextStyle.fontSize) valueSel.style('font-size', valueTextStyle.fontSize + 'px');
+    if (valueTextStyle.fill) valueSel.style('fill', valueTextStyle.fill);
 
     // svg.append('rect')
     //     .attr('y', height - margin.bottom)
@@ -154,13 +216,20 @@ function createBarChartRace(data, top_n, tickDuration) {
 
     // draw the updated graph with transitions
     function drawGraph() {
-        // update xAxis with new domain
-        x.domain([0, d3.max(row_data, d => d.value)]);
+        // x-axis domain is now fixed to globalMax, so no need to update it
+        // update x-axis
         svg.select('.xAxis')
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .call(xAxis);
+
+        // control visibility
+        if (showGridlines) {
+            svg.select('.xAxis').style('display', 'block');
+        } else {
+            svg.select('.xAxis').style('display', 'none');
+        }
 
         // update bars
         let bars = svg.selectAll('.bar').data(row_data, d => d.name);
@@ -195,9 +264,9 @@ function createBarChartRace(data, top_n, tickDuration) {
         // update labels
         let labels = svg.selectAll('.label').data(row_data, d => d.name);
 
-        labels.enter().append('text')
+        let labelsEnter = labels.enter().append('text')
             .attr('class', 'label')
-            .attr('x', d => x(d.value) - 8)
+            .attr('x', d => labelX(d))
             .attr('y', d => y(top_n + 1) + ((y(1) - y(0)) / 2))
             .style('text-anchor', 'end')
             .html(d => d.name)
@@ -205,41 +274,80 @@ function createBarChartRace(data, top_n, tickDuration) {
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+        if (labelTextStyle.fontFamily) labelsEnter.style('font-family', labelTextStyle.fontFamily);
+        if (labelTextStyle.fontSize) labelsEnter.style('font-size', labelTextStyle.fontSize + 'px');
+        if (labelTextStyle.fill) labelsEnter.style('fill', labelTextStyle.fill);
 
         labels.transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('x', d => x(d.value) - 8)
+            .attr('x', d => labelX(d))
             .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+        if (labelTextStyle.fontFamily) labels.style('font-family', labelTextStyle.fontFamily);
+        if (labelTextStyle.fontSize) labels.style('font-size', labelTextStyle.fontSize + 'px');
+        if (labelTextStyle.fill) labels.style('fill', labelTextStyle.fill);
 
         labels.exit()
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('x', d => x(d.value) - 8)
+            .attr('x', d => labelX(d))
             .attr('y', d => y(top_n + 1)).remove();
+
+        // update icons
+        let icons = svg.selectAll('image.icon').data(row_data.filter(d => hasIcon(d)), d => d.name);
+
+        icons.enter()
+            .append('image')
+            .attr('class', 'icon')
+            .attr('width', iconSize)
+            .attr('height', iconSize)
+            .attr('x', d => iconX(d))
+            .attr('y', d => y(top_n + 1) - iconSize / 2)
+            .attr('href', d => iconUrlByName[d.name])
+            .attr('xlink:href', d => iconUrlByName[d.name])
+            .transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2);
+
+        icons.transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('x', d => iconX(d))
+            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2);
+
+        icons.exit()
+            .transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('y', d => y(top_n + 1) - iconSize / 2)
+            .remove();
 
         // update value labels
 
         let valueLabels = svg.selectAll('.valueLabel').data(row_data, d => d.name);
 
-        valueLabels
+        let valueEnter = valueLabels
             .enter()
             .append('text')
             .attr('class', 'valueLabel')
-            .attr('x', d => x(d.value) + 5)
+            .attr('x', d => valueLabelX(d))
             .attr('y', d => y(top_n + 1))
             .text(d => d3.format(',.0f')(d.lastValue))
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+        if (valueTextStyle.fontFamily) valueEnter.style('font-family', valueTextStyle.fontFamily);
+        if (valueTextStyle.fontSize) valueEnter.style('font-size', valueTextStyle.fontSize + 'px');
+        if (valueTextStyle.fill) valueEnter.style('fill', valueTextStyle.fill);
 
         valueLabels
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('x', d => x(d.value) + 5)
+            .attr('x', d => valueLabelX(d))
             .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
             .tween("text", function (d) {
                 let i = d3.interpolateNumber(d.lastValue, d.value);
@@ -247,6 +355,12 @@ function createBarChartRace(data, top_n, tickDuration) {
                     this.textContent = d3.format(',.0f')(i(t));
                 };
             });
+        if (valueTextStyle.fontFamily) valueLabels.style('font-family', valueTextStyle.fontFamily);
+        if (valueTextStyle.fontSize) valueLabels.style('font-size', valueTextStyle.fontSize + 'px');
+        if (valueTextStyle.fill) valueLabels.style('fill', valueTextStyle.fill);
+
+        // keep value labels on top during updates
+        valueLabels.raise();
 
 
         valueLabels
@@ -254,7 +368,7 @@ function createBarChartRace(data, top_n, tickDuration) {
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('x', d => x(d.value) + 5)
+            .attr('x', d => valueLabelX(d))
             .attr('y', d => y(top_n + 1)).remove()
 
         // update time label and progress bar
