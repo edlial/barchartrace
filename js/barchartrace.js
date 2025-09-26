@@ -29,6 +29,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     const iconUrlByName = resolvedOptions.icons || {};
     const iconSize = resolvedOptions.iconSize || 18; // px
     const iconGap = resolvedOptions.iconGap != null ? resolvedOptions.iconGap : 8; // px to the right of bar end
+    const iconsLeftOfAxis = !!resolvedOptions.iconsLeftOfAxis; // new toggle
     const labelPadding = resolvedOptions.labelPadding != null ? resolvedOptions.labelPadding : 10; // px inside bar end
     const numberGap = resolvedOptions.numberGap != null ? resolvedOptions.numberGap : 18; // px to the right of icon
     const showGridlines = resolvedOptions.showGridlines !== false; // default true
@@ -36,13 +37,52 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     const valueTextStyle = resolvedOptions.valueTextStyle || {};
     const customColors = resolvedOptions.colors || null;
 
+    // Create or update a clip-path that matches the bar bounds for a label
+    function getClipId(name) {
+        return 'clip-label-' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    }
+    let defs = null;
+    function ensureDefs() {
+        if (!defs) {
+            defs = svg.append('defs');
+        }
+        return defs;
+    }
+    function upsertLabelClip(d) {
+        const id = getClipId(d.name);
+        ensureDefs();
+        let clip = defs.select('#' + id);
+        if (clip.empty()) {
+            clip = defs.append('clipPath').attr('id', id);
+            clip.append('rect');
+        }
+        const barY = y(d.rank) + barPadding / 2;
+        const barH = y(1) - y(0) - barPadding;
+        const clipX = x(0) + 2; // small inner padding
+        const clipW = Math.max(0, x(d.value) - x(0) - 4); // keep inside bar edges
+        clip.select('rect')
+            .attr('x', clipX)
+            .attr('y', barY)
+            .attr('width', clipW)
+            .attr('height', barH)
+            .attr('rx', 0).attr('ry', 0);
+        return 'url(#' + id + ')';
+    }
+
     const barEndX = (d) => x(d.value); // exact end of bar
     const hasIcon = (d) => Boolean(iconUrlByName[d.name]);
-    const labelX = (d) => barEndX(d) - labelPadding; // text end just inside bar
-    const iconX = (d) => barEndX(d) + iconGap; // icon outside bar
-    const valueLabelX = (d) => hasIcon(d)
-        ? (barEndX(d) + iconGap + iconSize + numberGap)
-        : (barEndX(d) + numberGap);
+    const labelX = (d) => Math.max(x(0) + 4, barEndX(d) - labelPadding); // keep inside bar
+    const iconX = (d) => iconsLeftOfAxis
+        ? (x(0) - iconGap - iconSize)
+        : (barEndX(d) + iconGap);
+    const valueLabelX = (d) => {
+        if (iconsLeftOfAxis) {
+            return barEndX(d) + numberGap; // numbers to right of bar when icons are left
+        }
+        return hasIcon(d)
+            ? (barEndX(d) + iconGap + iconSize + numberGap)
+            : (barEndX(d) + numberGap);
+    };
 
     function getRowData(data, column_names, row_index) {
         const row = data[row_index];
@@ -111,9 +151,10 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .ticks(5)
         .scale(t);
 
+    let leftIconSpace = iconsLeftOfAxis ? (iconSize + iconGap + 10) : 0;
     let x = d3.scaleLinear()
         .domain([0, globalMax])
-        .range([margin.left, width - margin.right]);
+        .range([margin.left + leftIconSpace, width - margin.right]);
 
     let y = d3.scaleLinear()
         .domain([top_n, 0])
@@ -159,6 +200,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .attr('x', d => labelX(d))
         .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
         .style('text-anchor', 'end')
+        .attr('clip-path', d => upsertLabelClip(d))
         .html(d => d.name);
     if (labelTextStyle.fontFamily) labelsSel.style('font-family', labelTextStyle.fontFamily);
     if (labelTextStyle.fontSize) labelsSel.style('font-size', labelTextStyle.fontSize + 'px');
@@ -269,6 +311,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .attr('x', d => labelX(d))
             .attr('y', d => y(top_n + 1) + ((y(1) - y(0)) / 2))
             .style('text-anchor', 'end')
+            .attr('clip-path', d => upsertLabelClip(d))
             .html(d => d.name)
             .transition()
             .duration(tickDuration)
@@ -283,6 +326,8 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .ease(d3.easeLinear)
             .attr('x', d => labelX(d))
             .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+        // Update clip-path bounds to match animated bars
+        labels.each(function(d){ d3.select(this).attr('clip-path', upsertLabelClip(d)); });
         if (labelTextStyle.fontFamily) labels.style('font-family', labelTextStyle.fontFamily);
         if (labelTextStyle.fontSize) labels.style('font-size', labelTextStyle.fontSize + 'px');
         if (labelTextStyle.fill) labels.style('fill', labelTextStyle.fill);

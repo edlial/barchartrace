@@ -243,6 +243,14 @@
                     </label>
                   </div>
                 </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_icons_left" v-model="iconsLeftOfAxis">
+                    <label class="custom-control-label" for="s_icons_left">
+                      <i class="fas fa-images"></i> Place icons left of Chart
+                    </label>
+                  </div>
+                </div>
                 
                 <!-- Bar Colors Section -->
                 <div class="color-settings">
@@ -573,6 +581,7 @@
             top_n: 10,
             title: "My bar chart",
             fileplaceholder: "Choose file",
+            iconsLeftOfAxis: false,
             showGridlines: true,
             showChartTitle: true,
             labelFontFamily: 'Open Sans',
@@ -637,10 +646,18 @@
                 return 20 + this.previewBarWidth - this.labelPosition;
             },
             previewIconX: function() {
+                const iconWidth = 20;
+                if (this.iconsLeftOfAxis) {
+                    return 20 - this.iconMargin - iconWidth;
+                }
                 return 20 + this.previewBarWidth + this.iconMargin;
             },
             previewNumberX: function() {
-                return 20 + this.previewBarWidth + this.iconMargin + 20 + this.numberPosition; // 20 is icon width
+                const iconWidth = 20;
+                if (this.iconsLeftOfAxis) {
+                    return 20 + this.previewBarWidth + this.numberPosition;
+                }
+                return 20 + this.previewBarWidth + this.iconMargin + iconWidth + this.numberPosition;
             }
         },
         methods: {
@@ -712,6 +729,7 @@
                             icons: icons,
                             iconSize: 45,
                             iconGap: self.iconMargin,
+                                iconsLeftOfAxis: !!self.iconsLeftOfAxis,
                             labelPadding: self.labelPosition,
                             numberGap: self.numberPosition,
                             showGridlines: !!self.showGridlines,
@@ -777,6 +795,7 @@
                     title: this.title,
                     duration: this.duration,
                     top_n: this.top_n,
+                    iconsLeftOfAxis: this.iconsLeftOfAxis,
                     showGridlines: this.showGridlines,
                     showChartTitle: this.showChartTitle,
                     titleFontFamily: this.titleFontFamily,
@@ -800,6 +819,7 @@
                 this.title = settings.title;
                 this.duration = settings.duration;
                 this.top_n = settings.top_n;
+                this.iconsLeftOfAxis = settings.iconsLeftOfAxis;
                 this.showGridlines = settings.showGridlines;
                 this.showChartTitle = settings.showChartTitle;
                 this.titleFontFamily = settings.titleFontFamily;
