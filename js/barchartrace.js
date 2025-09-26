@@ -36,6 +36,12 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     const labelTextStyle = resolvedOptions.labelTextStyle || {};
     const valueTextStyle = resolvedOptions.valueTextStyle || {};
     const customColors = resolvedOptions.colors || null;
+    const barWidth = resolvedOptions.barWidth != null ? resolvedOptions.barWidth : 1; // multiplier for bar height (1 = default, 0.5 = thinner, 2 = thicker)
+    
+    // Adjust bar padding based on bar width setting
+    // When barWidth < 1 (thinner bars), we need more padding between bars
+    // When barWidth > 1 (thicker bars), we need less padding between bars
+    const adjustedBarPadding = barPadding * (2 - barWidth);
 
     // Create or update a clip-path that matches the bar bounds for a label
     function getClipId(name) {
@@ -56,8 +62,8 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             clip = defs.append('clipPath').attr('id', id);
             clip.append('rect');
         }
-        const barY = y(d.rank) + barPadding / 2;
-        const barH = y(1) - y(0) - barPadding;
+        const barY = y(d.rank) + adjustedBarPadding / 2;
+        const barH = (y(1) - y(0) - adjustedBarPadding) * barWidth;
         const clipX = x(0) + 2; // small inner padding
         const clipW = Math.max(0, x(d.value) - x(0) - 4); // keep inside bar edges
         clip.select('rect')
@@ -187,8 +193,8 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .attr('class', 'bar')
         .attr('x', x(0) + 1)
         .attr('width', d => x(d.value) - x(0))
-        .attr('y', d => y(d.rank) + barPadding / 2)
-        .attr('height', y(1) - y(0) - barPadding)
+        .attr('y', d => y(d.rank) + adjustedBarPadding / 2)
+        .attr('height', (y(1) - y(0) - adjustedBarPadding) * barWidth)
         .style('fill', d => colors[d.name]);
 
 
@@ -198,7 +204,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .append('text')
         .attr('class', 'label')
         .attr('x', d => labelX(d))
-        .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
+        .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1)
         .style('text-anchor', 'end')
         .attr('clip-path', d => upsertLabelClip(d))
         .html(d => d.name);
@@ -215,7 +221,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .attr('width', iconSize)
         .attr('height', iconSize)
         .attr('x', d => iconX(d))
-        .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2)
+        .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 - iconSize / 2)
         .attr('href', d => iconUrlByName[d.name])
         .attr('xlink:href', d => iconUrlByName[d.name]);
 
@@ -225,7 +231,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .append('text')
         .attr('class', 'valueLabel')
     .attr('x', d => valueLabelX(d))
-        .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
+        .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1)
         .text(d => d3.format(',.0f')(d.lastValue));
     if (valueTextStyle.fontFamily) valueSel.style('font-family', valueTextStyle.fontFamily);
     if (valueTextStyle.fontSize) valueSel.style('font-size', valueTextStyle.fontSize + 'px');
@@ -282,25 +288,25 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .attr('width', d => x(d.value) - x(0))
             //enter from out of screen
             .attr('y', d => y(top_n + 1) + 0)
-            .attr('height', y(1) - y(0) - barPadding)
+            .attr('height', (y(1) - y(0) - adjustedBarPadding) * barWidth)
             .style('fill', d => colors[d.name])
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('y', d => y(d.rank) + barPadding / 2);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2);
 
         bars.transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('width', d => x(d.value) - x(0))
-            .attr('y', d => y(d.rank) + barPadding / 2);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2);
 
         bars.exit()
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('width', d => x(d.value) - x(0))
-            .attr('y', d => y(top_n + 1) + barPadding / 2)
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2)
             .remove();
 
         // update labels
@@ -309,14 +315,14 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         let labelsEnter = labels.enter().append('text')
             .attr('class', 'label')
             .attr('x', d => labelX(d))
-            .attr('y', d => y(top_n + 1) + ((y(1) - y(0)) / 2))
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2)
             .style('text-anchor', 'end')
             .attr('clip-path', d => upsertLabelClip(d))
             .html(d => d.name)
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1);
         if (labelTextStyle.fontFamily) labelsEnter.style('font-family', labelTextStyle.fontFamily);
         if (labelTextStyle.fontSize) labelsEnter.style('font-size', labelTextStyle.fontSize + 'px');
         if (labelTextStyle.fill) labelsEnter.style('fill', labelTextStyle.fill);
@@ -325,7 +331,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('x', d => labelX(d))
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1);
         // Update clip-path bounds to match animated bars
         labels.each(function(d){ d3.select(this).attr('clip-path', upsertLabelClip(d)); });
         if (labelTextStyle.fontFamily) labels.style('font-family', labelTextStyle.fontFamily);
@@ -337,7 +343,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('x', d => labelX(d))
-            .attr('y', d => y(top_n + 1)).remove();
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2).remove();
 
         // update icons
         let icons = svg.selectAll('image.icon').data(row_data.filter(d => hasIcon(d)), d => d.name);
@@ -348,25 +354,25 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .attr('width', iconSize)
             .attr('height', iconSize)
             .attr('x', d => iconX(d))
-            .attr('y', d => y(top_n + 1) - iconSize / 2)
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 - iconSize / 2)
             .attr('href', d => iconUrlByName[d.name])
             .attr('xlink:href', d => iconUrlByName[d.name])
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 - iconSize / 2);
 
         icons.transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('x', d => iconX(d))
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) - iconSize / 2);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 - iconSize / 2);
 
         icons.exit()
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('y', d => y(top_n + 1) - iconSize / 2)
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 - iconSize / 2)
             .remove();
 
         // update value labels
@@ -378,12 +384,12 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .append('text')
             .attr('class', 'valueLabel')
             .attr('x', d => valueLabelX(d))
-            .attr('y', d => y(top_n + 1))
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2)
             .text(d => d3.format(',.0f')(d.lastValue))
             .transition()
             .duration(tickDuration)
             .ease(d3.easeLinear)
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1);
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1);
         if (valueTextStyle.fontFamily) valueEnter.style('font-family', valueTextStyle.fontFamily);
         if (valueTextStyle.fontSize) valueEnter.style('font-size', valueTextStyle.fontSize + 'px');
         if (valueTextStyle.fill) valueEnter.style('fill', valueTextStyle.fill);
@@ -393,7 +399,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('x', d => valueLabelX(d))
-            .attr('y', d => y(d.rank) + ((y(1) - y(0)) / 2) + 1)
+            .attr('y', d => y(d.rank) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2 + 1)
             .tween("text", function (d) {
                 let i = d3.interpolateNumber(d.lastValue, d.value);
                 return function (t) {
@@ -414,7 +420,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
             .duration(tickDuration)
             .ease(d3.easeLinear)
             .attr('x', d => valueLabelX(d))
-            .attr('y', d => y(top_n + 1)).remove()
+            .attr('y', d => y(top_n + 1) + adjustedBarPadding / 2 + ((y(1) - y(0) - adjustedBarPadding) * barWidth) / 2).remove()
 
         // update time label and progress bar
         d3.select('.progressBar')

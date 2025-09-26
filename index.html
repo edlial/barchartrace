@@ -93,12 +93,27 @@
       <hr>
       <div id="chart-card" class="card">
         <div class="card-body position-relative">
-          <div class="text-right mb-4">
-            <button type="button" class="btn btn-xs btn-outline-primary" v-on:click="stopRace">Stop</button>
-            <button type="button" class="btn btn-xs btn-outline-primary" v-on:click="checkForm">Restart</button>
-            <button type="button" class="btn btn-xs btn-outline-primary" data-toggle="modal" data-target="#settingsModal">Settings</button>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <!-- Left side: Aspect Ratio Controls -->
+            <div class="aspect-ratio-controls-left">              
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" id="main_aspect_desktop" v-model="selectedAspectRatio" value="desktop">
+                <label class="btn btn-outline-primary" for="main_aspect_desktop">Desktop (16:9)</label>
+                
+                <input type="radio" class="btn-check" id="main_aspect_mobile" v-model="selectedAspectRatio" value="mobile">
+                <label class="btn btn-outline-primary" for="main_aspect_mobile">Mobile (9:16)</label>
+              </div>
+            </div>
+            
+            <!-- Right side: Chart Controls -->
+            <div class="chart-controls">
+              <button type="button" class="btn btn-outline-primary" v-on:click="stopRace">Stop</button>
+              <button type="button" class="btn btn-outline-primary" v-on:click="checkForm">Restart</button>
+              <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#settingsModal">Settings</button>
+            </div>
           </div>
-          <h5 class="card-title" id="graph-title" v-if="showChartTitle" :style="'font-family: ' + titleFontFamily + '; font-size: ' + titleFontSize + 'px; color: ' + titleColor + ';'">((title))</h5>
+          
+          <h5 class="card-title" id="graph-title" :style="'font-family: ' + titleFontFamily + '; font-size: ' + titleFontSize + 'px; color: ' + titleColor + '; display: ' + (showChartTitle ? 'block' : 'none')">((title))</h5>
           <div id="chartDiv" style="width:100%; height: 650px"></div>
           <p style="position:absolute;top:50%;left:50%;font-size:1.125rem;transform: translate(-50%,-50%)" v-if="interval == null">Please upload data first</p>
         </div>
@@ -106,7 +121,7 @@
     </div>
   </section>
   <!-- Modal -->
-  <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -193,7 +208,7 @@
     </div>
   </div>
   <!-- Settings Modal -->
-  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsLabel" aria-hidden="true">
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsLabel">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -205,262 +220,369 @@
           </button>
         </div>
         <div class="modal-body">
-          <!-- Main Settings Row -->
+          <!-- New Layout: Settings on Left, Large Preview on Right -->
           <div class="row">
-            <!-- Left Column: Basic Settings -->
-            <div class="col-lg-4">
-              <div class="settings-card">
-                <h5 class="card-title">
-                  <i class="fas fa-sliders-h"></i> Basic Settings
-                </h5>
-                <div class="form-group">
-                  <label for="s_title">Chart Title</label>
-                  <input id="s_title" v-model="title" class="form-control" type="text" placeholder="Enter chart title">
-                </div>
-                <div class="form-row">
-                  <div class="form-group col-6">
-                    <label for="s_duration">Duration (seconds)</label>
-                    <input id="s_duration" v-model="duration" class="form-control" type="number" min="1" max="300">
-                  </div>
-                  <div class="form-group col-6">
-                    <label for="s_top_n">Number of Bars</label>
-                    <input id="s_top_n" v-model="top_n" class="form-control" type="number" min="1" max="50">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="s_grid" v-model="showGridlines">
-                    <label class="custom-control-label" for="s_grid">
-                      <i class="fas fa-th"></i> Show grid lines
-                    </label>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="s_chart_title" v-model="showChartTitle">
-                    <label class="custom-control-label" for="s_chart_title">
-                      <i class="fas fa-heading"></i> Show Chart Title
-                    </label>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="s_icons_left" v-model="iconsLeftOfAxis">
-                    <label class="custom-control-label" for="s_icons_left">
-                      <i class="fas fa-images"></i> Place icons left of Chart
-                    </label>
-                  </div>
-                </div>
-                
-                <!-- Bar Colors Section -->
-                <div class="color-settings">
-                  <h6 class="color-title">
-                    <i class="fas fa-palette"></i> Bar Colors
-                  </h6>
-                  
-                  <!-- Color Mode Selection -->
-                  <div class="form-group">
-                    <label class="control-label">Color Mode</label>
-                    <div class="btn-group btn-group-sm w-100" role="group">
-                      <input type="radio" class="btn-check" id="color_palette" v-model="barColorMode" value="palette">
-                      <label class="btn btn-outline-primary" for="color_palette">Palette</label>
-                      
-                      <input type="radio" class="btn-check" id="color_custom" v-model="barColorMode" value="custom">
-                      <label class="btn btn-outline-primary" for="color_custom">Custom</label>
+            <!-- Left Side: All Settings (2 columns) -->
+            <div class="col-lg-6">
+              <div class="row">
+                <!-- Basic Settings Column -->
+                <div class="col-md-6">
+                  <div class="settings-card">
+                    <h5 class="card-title">
+                      <i class="fas fa-sliders-h"></i> Basic Settings
+                    </h5>
+                    <div class="form-group">
+                      <label for="s_title">Chart Title</label>
+                      <input id="s_title" v-model="title" class="form-control" type="text" placeholder="Enter chart title">
                     </div>
-                  </div>
-                  
-                  <!-- Palette Selection -->
-                  <div v-if="barColorMode === 'palette'" class="form-group">
-                    <label for="s_palette">Color Palette</label>
-                    <select id="s_palette" v-model="selectedPalette" class="form-control">
-                      <option v-for="(colors, name) in availablePalettes" :key="name" :value="name">
-                        (( name.charAt(0).toUpperCase() + name.slice(1) ))
-                      </option>
-                    </select>
+                    <div class="form-row">
+                      <div class="form-group col-6">
+                        <label for="s_duration">Duration (seconds)</label>
+                        <input id="s_duration" v-model="duration" class="form-control" type="number" min="1" max="300">
+                      </div>
+                      <div class="form-group col-6">
+                        <label for="s_top_n">Number of Bars</label>
+                        <input id="s_top_n" v-model="top_n" class="form-control" type="number" min="1" max="50">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="s_grid" v-model="showGridlines">
+                        <label class="custom-control-label" for="s_grid">
+                          <i class="fas fa-th"></i> Show grid lines
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="s_chart_title" v-model="showChartTitle">
+                        <label class="custom-control-label" for="s_chart_title">
+                          <i class="fas fa-heading"></i> Show Chart Title
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="s_icons_left" v-model="iconsLeftOfAxis">
+                        <label class="custom-control-label" for="s_icons_left">
+                          <i class="fas fa-images"></i> Place icons left of Chart
+                        </label>
+                      </div>
+                    </div>
                     
-                    <!-- Palette Preview -->
-                    <div class="palette-preview mt-2">
-                      <div class="palette-colors">
-                        <div v-for="(color, index) in availablePalettes[selectedPalette]" 
-                             :key="index" 
-                             class="color-swatch" 
-                             :style="{ backgroundColor: color }"
-                             :title="color">
+                    <!-- Bar Colors Section -->
+                    <div class="color-settings">
+                      <h6 class="color-title">
+                        <i class="fas fa-palette"></i> Bar Colors
+                      </h6>
+                      
+                      <!-- Color Mode Selection -->
+                      <div class="form-group">
+                        <label class="control-label">Color Mode</label>
+                        <div class="btn-group btn-group-sm w-100" role="group">
+                          <input type="radio" class="btn-check" id="color_palette" v-model="barColorMode" value="palette">
+                          <label class="btn btn-outline-primary" for="color_palette">Palette</label>
+                          
+                          <input type="radio" class="btn-check" id="color_custom" v-model="barColorMode" value="custom">
+                          <label class="btn btn-outline-primary" for="color_custom">Custom</label>
+                        </div>
+                      </div>
+                      
+                      <!-- Palette Selection -->
+                      <div v-if="barColorMode === 'palette'" class="form-group">
+                        <label for="s_palette">Color Palette</label>
+                        <select id="s_palette" v-model="selectedPalette" class="form-control">
+                          <option v-for="(colors, name) in availablePalettes" :key="name" :value="name">
+                            (( name.charAt(0).toUpperCase() + name.slice(1) ))
+                          </option>
+                        </select>
+                        
+                        <!-- Palette Preview -->
+                        <div class="palette-preview mt-2">
+                          <div class="palette-colors">
+                            <div v-for="(color, index) in availablePalettes[selectedPalette]" 
+                                 :key="index" 
+                                 class="color-swatch" 
+                                 :style="{ backgroundColor: color }"
+                                 :title="color">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Custom Colors -->
+                      <div v-if="barColorMode === 'custom'" class="form-group">
+                        <label class="control-label">Custom Colors</label>
+                        <div class="custom-colors-container">
+                          <div v-for="(color, index) in customColors" :key="index" class="custom-color-item">
+                            <input type="color" 
+                                   v-model="customColors[index]" 
+                                   class="form-control color-input-small"
+                                   :title="'Color ' + (index + 1)">
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger ml-2" 
+                                    @click="removeCustomColor(index)"
+                                    v-if="customColors.length > 1">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                          <button type="button" 
+                                  class="btn btn-sm btn-outline-primary mt-2" 
+                                  @click="addCustomColor">
+                            <i class="fas fa-plus"></i> Add Color
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  <!-- Custom Colors -->
-                  <div v-if="barColorMode === 'custom'" class="form-group">
-                    <label class="control-label">Custom Colors</label>
-                    <div class="custom-colors-container">
-                      <div v-for="(color, index) in customColors" :key="index" class="custom-color-item">
-                        <input type="color" 
-                               v-model="customColors[index]" 
-                               class="form-control color-input-small"
-                               :title="'Color ' + (index + 1)">
-                        <button type="button" 
-                                class="btn btn-sm btn-outline-danger ml-2" 
-                                @click="removeCustomColor(index)"
-                                v-if="customColors.length > 1">
-                          <i class="fas fa-times"></i>
-                        </button>
+                </div>
+
+                <!-- Typography & Layout Column -->
+                <div class="col-md-6">
+                  <div class="settings-card">
+                    <h5 class="card-title">
+                      <i class="fas fa-font"></i> Typography
+                    </h5>
+                    
+                    <div class="typography-group">
+                      <h6 class="typography-subtitle">Bar Labels</h6>
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="s_label_font">Font</label>
+                          <select id="s_label_font" v-model="labelFontFamily" class="form-control">
+                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                          </select>
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_label_size">Size</label>
+                          <input id="s_label_size" v-model.number="labelFontSize" class="form-control" type="number" min="8" max="32">
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_label_color">Color</label>
+                          <input id="s_label_color" v-model="labelColor" class="form-control color-input" type="color">
+                        </div>
                       </div>
-                      <button type="button" 
-                              class="btn btn-sm btn-outline-primary mt-2" 
-                              @click="addCustomColor">
-                        <i class="fas fa-plus"></i> Add Color
-                      </button>
+                    </div>
+
+                    <div class="typography-group">
+                      <h6 class="typography-subtitle">Chart Title</h6>
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="s_title_font">Font</label>
+                          <select id="s_title_font" v-model="titleFontFamily" class="form-control">
+                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                          </select>
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_title_size">Size</label>
+                          <input id="s_title_size" v-model.number="titleFontSize" class="form-control" type="number" min="12" max="48">
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_title_color">Color</label>
+                          <input id="s_title_color" v-model="titleColor" class="form-control color-input" type="color">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="typography-group">
+                      <h6 class="typography-subtitle">Numbers</h6>
+                      <div class="form-row">
+                        <div class="form-group col-6">
+                          <label for="s_value_font">Font</label>
+                          <select id="s_value_font" v-model="valueFontFamily" class="form-control">
+                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                          </select>
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_value_size">Size</label>
+                          <input id="s_value_size" v-model.number="valueFontSize" class="form-control" type="number" min="8" max="32">
+                        </div>
+                        <div class="form-group col-3">
+                          <label for="s_value_color">Color</label>
+                          <input id="s_value_color" v-model="valueColor" class="form-control color-input" type="color">
+                        </div>
+                      </div>
+                    </div>
+
+                    <h5 class="card-title mt-4">
+                      <i class="fas fa-arrows-alt-h"></i> Layout & Positioning
+                    </h5>
+                    
+                    <div class="control-group">
+                      <label class="control-label">
+                        <i class="fas fa-tag"></i> Label Position
+                      </label>
+                      <input id="s_label_position" v-model.number="labelPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                      <div class="range-labels">
+                        <span>Inside Bar</span>
+                        <span>Outside Bar</span>
+                      </div>
+                    </div>
+
+                    <div class="control-group">
+                      <label class="control-label">
+                        <i class="fas fa-image"></i> Icon Spacing
+                      </label>
+                      <input id="s_icon_margin" v-model.number="iconMargin" class="form-control-range" type="range" min="-50" max="50" step="2">
+                      <div class="range-labels">
+                        <span>Close</span>
+                        <span>Far</span>
+                      </div>
+                    </div>
+
+                    <div class="control-group">
+                      <label class="control-label">
+                        <i class="fas fa-hashtag"></i> Number Spacing
+                      </label>
+                      <input id="s_number_position" v-model.number="numberPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                      <div class="range-labels">
+                        <span>Close</span>
+                        <span>Far</span>
+                      </div>
+                    </div>
+
+                    <div class="control-group">
+                      <label class="control-label">
+                        <i class="fas fa-arrows-alt-v"></i> Bar Width
+                      </label>
+                      <input id="s_bar_width" v-model.number="barWidth" class="form-control-range" type="range" min="0.3" max="2" step="0.1">
+                      <div class="range-labels">
+                        <span>Thin</span>
+                        <span>Thick</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Middle Column: Typography & Layout -->
-            <div class="col-lg-4">
-              <div class="settings-card">
-                <h5 class="card-title">
-                  <i class="fas fa-font"></i> Typography
-                </h5>
-                
-                <div class="typography-group">
-                  <h6 class="typography-subtitle">Bar Labels</h6>
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="s_label_font">Font</label>
-                      <select id="s_label_font" v-model="labelFontFamily" class="form-control">
-                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                      </select>
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_label_size">Size</label>
-                      <input id="s_label_size" v-model.number="labelFontSize" class="form-control" type="number" min="8" max="32">
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_label_color">Color</label>
-                      <input id="s_label_color" v-model="labelColor" class="form-control color-input" type="color">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="typography-group">
-                  <h6 class="typography-subtitle">Chart Title</h6>
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="s_title_font">Font</label>
-                      <select id="s_title_font" v-model="titleFontFamily" class="form-control">
-                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                      </select>
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_title_size">Size</label>
-                      <input id="s_title_size" v-model.number="titleFontSize" class="form-control" type="number" min="12" max="48">
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_title_color">Color</label>
-                      <input id="s_title_color" v-model="titleColor" class="form-control color-input" type="color">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="typography-group">
-                  <h6 class="typography-subtitle">Numbers</h6>
-                  <div class="form-row">
-                    <div class="form-group col-6">
-                      <label for="s_value_font">Font</label>
-                      <select id="s_value_font" v-model="valueFontFamily" class="form-control">
-                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                      </select>
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_value_size">Size</label>
-                      <input id="s_value_size" v-model.number="valueFontSize" class="form-control" type="number" min="8" max="32">
-                    </div>
-                    <div class="form-group col-3">
-                      <label for="s_value_color">Color</label>
-                      <input id="s_value_color" v-model="valueColor" class="form-control color-input" type="color">
-                    </div>
-                  </div>
-                </div>
-
-                <h5 class="card-title mt-4">
-                  <i class="fas fa-arrows-alt-h"></i> Layout & Positioning
-                </h5>
-                
-                <div class="control-group">
-                  <label class="control-label">
-                    <i class="fas fa-tag"></i> Label Position
-                  </label>
-                  <input id="s_label_position" v-model.number="labelPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
-                  <div class="range-labels">
-                    <span>Inside Bar</span>
-                    <span>Outside Bar</span>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label">
-                    <i class="fas fa-image"></i> Icon Spacing
-                  </label>
-                  <input id="s_icon_margin" v-model.number="iconMargin" class="form-control-range" type="range" min="-50" max="50" step="2">
-                  <div class="range-labels">
-                    <span>Close</span>
-                    <span>Far</span>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label">
-                    <i class="fas fa-hashtag"></i> Number Spacing
-                  </label>
-                  <input id="s_number_position" v-model.number="numberPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
-                  <div class="range-labels">
-                    <span>Close</span>
-                    <span>Far</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right Column: Live Preview -->
-            <div class="col-lg-4">
-              <div class="preview-card">
+            <!-- Right Side: Large Preview (6 columns) -->
+            <div class="col-lg-6">
+              <div class="preview-card-large">
                 <h5 class="preview-title">
-                  <i class="fas fa-eye"></i> Live Preview
+                  <i class="fas fa-eye"></i> Complete Chart Preview
                 </h5>
-                <div class="preview-container">
+                <div class="preview-container-large">
                   <div class="preview-header">
-                    <span class="preview-label-text">See how your changes look in real-time</span>
+                    <span class="preview-label-text">How your complete chart will look in the recording area</span>
                   </div>
-                  <svg id="previewSvg" width="100%" height="120" viewBox="0 0 400 120">
-                    <!-- Preview bar -->
-                    <rect class="preview-bar" x="20" :width="previewBarWidth" y="60" height="40" :fill="getBarColors()[0]" rx="3"></rect>
-                    <!-- Preview label -->
-                    <text class="preview-label" 
-                          :x="previewLabelX" 
-                          y="80" 
-                          :style="'font-family: ' + labelFontFamily + '; font-size: ' + labelFontSize + 'px; fill: ' + labelColor + ';'"
-                          text-anchor="end">Sample Label</text>
-                    <!-- Preview icon -->
-                    <image class="preview-icon" 
-                           :x="previewIconX" 
-                           y="70" 
-                           width="20" 
-                           height="20" 
-                           href="images/python.png"></image>
-                    <!-- Preview number -->
-                    <text class="preview-number" 
-                          :x="previewNumberX" 
-                          y="80" 
-                          :style="'font-family: ' + valueFontFamily + '; font-size: ' + valueFontSize + 'px; fill: ' + valueColor + ';'">1,234</text>
-                    <!-- Preview grid lines -->
-                    <line v-if="showGridlines" x1="20" y1="40" x2="20" y2="120" stroke="#cecece" stroke-width="1"></line>
-                    <line v-if="showGridlines" x1="200" y1="40" x2="200" y2="120" stroke="#cecece" stroke-width="1"></line>
-                    <line v-if="showGridlines" x1="380" y1="40" x2="380" y2="120" stroke="#cecece" stroke-width="1"></line>
-                  </svg>
+                  
+                  <!-- Complete Chart Preview -->
+                  <div class="complete-preview-wrapper-large" :style="getPreviewWrapperStyleLarge()">
+                    <!-- Main Chart Preview -->
+                    <div class="preview-chart-container-large" :style="getPreviewChartStyleLarge()">
+                      <!-- Chart Title Preview - Inside SVG -->
+                      <div v-if="showChartTitle" 
+                           class="preview-chart-title-inside" 
+                           :style="'font-family: ' + titleFontFamily + '; font-size: ' + Math.min(titleFontSize, 20) + 'px; color: ' + titleColor + ';'">
+                        (( title ))
+                      </div>
+                      <svg :width="previewChartWidthLarge" :height="previewChartHeightLarge" class="preview-chart-svg-large" :viewBox="'0 0 ' + previewChartWidthLarge + ' ' + previewChartHeightLarge">
+                        <!-- Grid lines -->
+                        <g v-if="showGridlines" class="preview-grid">
+                          <line v-for="i in 4" :key="'grid-' + i" 
+                                :x1="previewMarginLarge.left + (i * previewChartWidthLarge / 4)" 
+                                :y1="previewMarginLarge.top" 
+                                :x2="previewMarginLarge.left + (i * previewChartWidthLarge / 4)" 
+                                :y2="previewChartHeightLarge - previewMarginLarge.bottom" 
+                                stroke="#cecece" stroke-width="1"></line>
+                        </g>
+                        
+                        <!-- Preview bars -->
+                        <g v-for="(bar, index) in previewBarsLarge" :key="'bar-' + index" class="preview-bar-group">
+                          <!-- Bar -->
+                          <rect class="preview-bar" 
+                                :x="previewMarginLarge.left" 
+                                :width="bar.width" 
+                                :y="bar.y" 
+                                :height="bar.height" 
+                                :fill="bar.color" 
+                                rx="2"></rect>
+                          
+                          <!-- Bar label (white text on colored bar) -->
+                          <text class="preview-label" 
+                                :x="bar.labelX" 
+                                :y="bar.labelY" 
+                                :style="'font-family: ' + labelFontFamily + '; font-size: ' + Math.min(labelFontSize, 14) + 'px; fill: white; font-weight: 600;'"
+                                text-anchor="start">(( bar.name ))</text>
+                          
+                          <!-- Bar icon (to the right of bar) -->
+                          <image v-if="bar.hasIcon" 
+                                 class="preview-icon" 
+                                 :x="bar.iconX" 
+                                 :y="bar.iconY" 
+                                 width="24" 
+                                 height="24" 
+                                 :href="bar.iconUrl"></image>
+                          
+                          <!-- Bar value (to the right of icon) -->
+                          <text class="preview-number" 
+                                :x="bar.numberX" 
+                                :y="bar.numberY" 
+                                :style="'font-family: ' + valueFontFamily + '; font-size: ' + Math.min(valueFontSize, 14) + 'px; fill: ' + valueColor + '; font-weight: 600;'">(( bar.value ))</text>
+                        </g>
+                      </svg>
+                    </div>
+                    
+                    <!-- Timeline Preview -->
+                    <div class="preview-timeline-large" :style="getPreviewTimelineStyleLarge()">
+                      <svg :width="previewChartWidthLarge" height="80" class="preview-timeline-svg-large" :viewBox="'0 0 ' + previewChartWidthLarge + ' 80'">
+                        <!-- Timeline axis -->
+                        <g class="preview-timeline-axis">
+                          <line :x1="previewMarginLarge.left" :y1="30" :x2="previewChartWidthLarge - previewMarginLarge.right" :y2="30" stroke="#aaaaaa" stroke-width="1"></line>
+                          <!-- Timeline ticks and years -->
+                          <g v-for="(year, i) in ['2010', '2012', '2014', '2016', '2018', '2020']" :key="'tick-' + i">
+                            <line :x1="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
+                                  :y1="25" 
+                                  :x2="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
+                                  :y2="35" 
+                                  stroke="#aaaaaa" stroke-width="1"></line>
+                            <text :x="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
+                                  :y="45" 
+                                  text-anchor="middle" 
+                                  style="font-size: 12px; fill: #6c757d;">(( year ))</text>
+                          </g>
+                        </g>
+                        <!-- Progress bar -->
+                        <rect class="preview-progress-bar" 
+                              :x="previewMarginLarge.left" 
+                              :y="29" 
+                              :width="previewChartWidthLarge * 0.3" 
+                              :height="2" 
+                              fill="#505050"></rect>
+                        <!-- Date display -->
+                        <text :x="previewChartWidthLarge - previewMarginLarge.right" 
+                              :y="70" 
+                              text-anchor="end" 
+                              style="font-size: 14px; fill: #505050; font-weight: 600;">June 01, 2020</text>
+                      </svg>
+                    </div>
+                    
+                    <!-- Recording Area Border -->
+                    <div class="preview-recording-border-large" :style="getPreviewRecordingBorderStyleLarge()"></div>
+                  </div>
+                  
+                  <!-- Preview Info -->
+                  <div class="preview-info-large">
+                    <div class="preview-stats-large">
+                      <div class="stat-item">
+                        <span class="stat-label">Aspect Ratio:</span>
+                        <span class="stat-value">(( getAspectRatioLabel() ))</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Dimensions:</span>
+                        <span class="stat-value">(( getAspectRatioDimensions() ))</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Bars:</span>
+                        <span class="stat-value">(( top_n ))</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Duration:</span>
+                        <span class="stat-value">(( duration ))s</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -557,6 +679,7 @@
       </div>
     </div>
   </div>
+  
 </main>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -596,6 +719,7 @@
             iconMargin: 8,
             numberPosition: 18,
             labelPosition: 50,
+            barWidth: 1,
             barColorMode: 'palette', // 'palette' or 'custom'
             selectedPalette: 'default',
             customColors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'],
@@ -636,7 +760,13 @@
             themePresets: {},
             currentPresetName: '',
             newPresetName: '',
-            defaultPresetName: 'Default'
+            defaultPresetName: 'Default',
+            // Aspect Ratio Settings
+            selectedAspectRatio: 'desktop',
+            aspectRatios: {
+                desktop: { ratio: 16/9, label: 'Desktop', width: 1920, height: 1080 },
+                mobile: { ratio: 9/16, label: 'Mobile', width: 1080, height: 1920 }
+            },
         },
         computed: {
             previewBarWidth: function() {
@@ -658,6 +788,178 @@
                     return 20 + this.previewBarWidth + this.numberPosition;
                 }
                 return 20 + this.previewBarWidth + this.iconMargin + iconWidth + this.numberPosition;
+            },
+            // Enhanced preview properties
+            previewChartWidth: function() {
+                return 320; // Fixed width for preview chart
+            },
+            previewChartHeight: function() {
+                return 200; // Fixed height for preview chart
+            },
+            previewMargin: function() {
+                return {
+                    top: 20,
+                    right: 60,
+                    bottom: 20,
+                    left: this.iconsLeftOfAxis ? 30 : 0
+                };
+            },
+            previewBars: function() {
+                const bars = [];
+                const colors = this.getBarColors();
+                const barHeight = Math.max(8, (this.previewChartHeight - this.previewMargin.top - this.previewMargin.bottom) / this.top_n * this.barWidth);
+                const barSpacing = (this.previewChartHeight - this.previewMargin.top - this.previewMargin.bottom) / this.top_n;
+                
+                // Sample data for preview
+                const sampleData = [
+                    { name: 'Python', value: '1,234', width: this.previewChartWidth * 0.8 },
+                    { name: 'JavaScript', value: '987', width: this.previewChartWidth * 0.6 },
+                    { name: 'Java', value: '756', width: this.previewChartWidth * 0.45 },
+                    { name: 'C++', value: '543', width: this.previewChartWidth * 0.32 },
+                    { name: 'C#', value: '321', width: this.previewChartWidth * 0.19 }
+                ];
+                
+                sampleData.forEach((item, index) => {
+                    if (index >= this.top_n) return;
+                    
+                    const y = this.previewMargin.top + (index * barSpacing) + (barSpacing - barHeight) / 2;
+                    const labelX = Math.max(this.previewMargin.left + 4, item.width - this.labelPosition);
+                    const iconX = this.iconsLeftOfAxis 
+                        ? (this.previewMargin.left - this.iconMargin - 16)
+                        : (item.width + this.iconMargin);
+                    const numberX = this.iconsLeftOfAxis
+                        ? (item.width + this.numberPosition)
+                        : (item.width + this.iconMargin + 16 + this.numberPosition);
+                    
+                    bars.push({
+                        name: item.name,
+                        value: item.value,
+                        width: item.width - this.previewMargin.left,
+                        y: y,
+                        height: barHeight,
+                        color: colors[index % colors.length],
+                        labelX: labelX,
+                        labelY: y + barHeight / 2 + 1,
+                        iconX: iconX,
+                        iconY: y + barHeight / 2 - 8,
+                        numberX: numberX,
+                        numberY: y + barHeight / 2 + 1,
+                        hasIcon: index < 3 // Show icons for first 3 bars
+                    });
+                });
+                
+                return bars;
+            },
+            // Large preview properties
+            previewChartWidthLarge: function() {
+                return 450; // Increased width to accommodate all elements
+            },
+            previewChartHeightLarge: function() {
+                return 320; // Increased height to fit all bars and title
+            },
+            previewMarginLarge: function() {
+                return {
+                    top: this.showChartTitle ? 60 : 30, // More space for title
+                    right: 150, // Increased right margin for numbers
+                    bottom: 80, // More space for timeline
+                    left: this.iconsLeftOfAxis ? 50 : 20
+                };
+            },
+            previewBarsLarge: function() {
+                const bars = [];
+                const colors = this.getBarColors();
+                const barHeight = Math.max(12, (this.previewChartHeightLarge - this.previewMarginLarge.top - this.previewMarginLarge.bottom) / this.top_n * this.barWidth);
+                const barSpacing = (this.previewChartHeightLarge - this.previewMarginLarge.top - this.previewMarginLarge.bottom) / this.top_n;
+                
+                // Sample data for preview - ensure bars fit within recording area
+                const maxBarWidth = this.previewChartWidthLarge - this.previewMarginLarge.left - this.previewMarginLarge.right - 80; // Extra space for icons and numbers
+                const sampleData = [
+                    { name: 'Python', value: '15', width: maxBarWidth * 0.9, iconUrl: 'images/python.png' },
+                    { name: 'JavaScript', value: '11', width: maxBarWidth * 0.7, iconUrl: 'images/js.png' },
+                    { name: 'Java', value: '7', width: maxBarWidth * 0.45, iconUrl: 'images/java.png' },
+                    { name: 'C#', value: '5', width: maxBarWidth * 0.32, iconUrl: 'images/csharp.png' },
+                    { name: 'PHP', value: '4', width: maxBarWidth * 0.25, iconUrl: 'images/perl.svg' },
+                    { name: 'R', value: '3', width: maxBarWidth * 0.19, iconUrl: 'images/r.png' },
+                    { name: 'C++', value: '3', width: maxBarWidth * 0.19, iconUrl: 'images/csharp.png' },
+                    { name: 'Swift', value: '2', width: maxBarWidth * 0.12, iconUrl: 'images/swift.png' },
+                    { name: 'C', value: '1', width: maxBarWidth * 0.06, iconUrl: 'images/csharp.png' },
+                    { name: 'Ruby', value: '0', width: maxBarWidth * 0.02, iconUrl: 'images/ruby.png' }
+                ];
+                
+                sampleData.forEach((item, index) => {
+                    if (index >= this.top_n) return;
+                    
+                    const y = this.previewMarginLarge.top + (index * barSpacing) + (barSpacing - barHeight) / 2;
+                    const barEndX = this.previewMarginLarge.left + item.width;
+                    const labelX = this.previewMarginLarge.left + 8; // White text on colored bar
+                    const iconX = barEndX + 8; // Icon to the right of bar
+                    const numberX = iconX + 28; // Number to the right of icon
+                    
+                    bars.push({
+                        name: item.name,
+                        value: item.value,
+                        width: item.width,
+                        y: y,
+                        height: barHeight,
+                        color: colors[index % colors.length],
+                        labelX: labelX,
+                        labelY: y + barHeight / 2 + 1,
+                        iconX: iconX,
+                        iconY: y + barHeight / 2 - 12,
+                        numberX: numberX,
+                        numberY: y + barHeight / 2 + 1,
+                        hasIcon: true, // Show icons for all bars
+                        iconUrl: item.iconUrl
+                    });
+                });
+                
+                return bars;
+            }
+        },
+        watch: {
+            selectedAspectRatio: function(newRatio) {
+                // Apply aspect ratio changes when selection changes
+                // Add a small delay to ensure DOM elements are ready
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        this.applyAspectRatioToChart();
+                    });
+                }, 100);
+            },
+            titleFontSize: function(newSize) {
+                // Update recording area when title font size changes
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        this.applyAspectRatioToChart();
+                    });
+                }, 100);
+            },
+            titleFontFamily: function(newFamily) {
+                // Update recording area when title font family changes
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        this.applyAspectRatioToChart();
+                    });
+                }, 100);
+            },
+            showChartTitle: function(newValue) {
+                // Update recording area when title visibility changes
+                console.log('showChartTitle changed to:', newValue);
+                
+                // Force Vue to re-render the title element with new display style
+                this.$nextTick(() => {
+                    const titleElement = document.getElementById("graph-title");
+                    console.log('Title element found:', titleElement);
+                    if (titleElement) {
+                        console.log('Title element display:', titleElement.style.display);
+                        console.log('Title element parent:', titleElement.parentElement);
+                    }
+                    
+                    // Apply aspect ratio changes after Vue has updated the DOM
+                    setTimeout(() => {
+                        this.applyAspectRatioToChart();
+                    }, 50);
+                });
             }
         },
         methods: {
@@ -733,6 +1035,7 @@
                             labelPadding: self.labelPosition,
                             numberGap: self.numberPosition,
                             showGridlines: !!self.showGridlines,
+                            barWidth: self.barWidth,
                             labelTextStyle: {
                                 fontFamily: self.labelFontFamily,
                                 fontSize: self.labelFontSize,
@@ -772,7 +1075,8 @@
                 $('#settingsModal').modal('hide');
                 $('#settingsModal').one('hidden.bs.modal', function () {
                     if (self.csv_data) {
-                        self.checkForm();
+                        // Apply aspect ratio first, then re-render chart
+                        self.applyAspectRatioToChart();
                     }
                 });
             },
@@ -810,9 +1114,11 @@
                     iconMargin: this.iconMargin,
                     numberPosition: this.numberPosition,
                     labelPosition: this.labelPosition,
+                    barWidth: this.barWidth,
                     barColorMode: this.barColorMode,
                     selectedPalette: this.selectedPalette,
-                    customColors: [...this.customColors]
+                    customColors: [...this.customColors],
+                    selectedAspectRatio: this.selectedAspectRatio
                 };
             },
             applySettings: function(settings) {
@@ -834,9 +1140,11 @@
                 this.iconMargin = settings.iconMargin;
                 this.numberPosition = settings.numberPosition;
                 this.labelPosition = settings.labelPosition;
+                this.barWidth = settings.barWidth;
                 this.barColorMode = settings.barColorMode;
                 this.selectedPalette = settings.selectedPalette;
                 this.customColors = [...settings.customColors];
+                this.selectedAspectRatio = settings.selectedAspectRatio || 'desktop';
             },
             savePreset: function() {
                 if (!this.newPresetName.trim()) {
@@ -905,10 +1213,361 @@
                     this.themePresets[this.defaultPresetName] = this.getCurrentSettings();
                     this.savePresetsToStorage();
                 }
+            },
+            // Aspect Ratio Methods
+            getAspectRatioLabel: function() {
+                return this.aspectRatios[this.selectedAspectRatio].label;
+            },
+            getAspectRatioDimensions: function() {
+                const aspect = this.aspectRatios[this.selectedAspectRatio];
+                return `${aspect.width} × ${aspect.height}`;
+            },
+            getCurrentAspectRatio: function() {
+                return this.aspectRatios[this.selectedAspectRatio];
+            },
+            applyAspectRatioToChart: function() {
+                const aspectRatio = this.getCurrentAspectRatio();
+                
+                // Get the chart container (either chartDiv or its wrapper)
+                let chartContainer = document.getElementById("chartDiv");
+                let chartTitle = document.getElementById("graph-title");
+                let parentContainer = document.querySelector('.card-body');
+                
+                // If chartDiv is inside a wrapper, use the wrapper
+                const existingWrapper = document.querySelector('.recording-wrapper');
+                if (existingWrapper) {
+                    chartContainer = existingWrapper;
+                    parentContainer = existingWrapper.parentElement;
+                }
+                
+                // Check if required elements exist
+                if (!chartContainer) {
+                    console.warn('Chart container not found, skipping aspect ratio application');
+                    return;
+                }
+                
+                if (!parentContainer) {
+                    console.warn('Parent container not found, skipping aspect ratio application');
+                    return;
+                }
+                
+                // Calculate dimensions based on aspect ratio
+                const containerWidth = parentContainer.clientWidth - 40; // Account for padding
+                const containerHeight = Math.min(650, window.innerHeight * 0.6); // Max height constraint
+                
+                let chartWidth, chartHeight;
+                
+                if (aspectRatio.ratio > 1) {
+                    // Landscape (desktop) - 16:9
+                    chartWidth = Math.min(containerWidth, containerHeight * aspectRatio.ratio);
+                    chartHeight = chartWidth / aspectRatio.ratio;
+                } else {
+                    // Portrait (mobile) - 9:16
+                    chartHeight = Math.min(containerHeight, containerWidth / aspectRatio.ratio);
+                    chartWidth = chartHeight * aspectRatio.ratio;
+                    
+                    // Ensure minimum width for mobile
+                    if (chartWidth < 300) {
+                        chartWidth = 300;
+                        chartHeight = chartWidth / aspectRatio.ratio;
+                    }
+                }
+                
+                console.log('Aspect Ratio:', aspectRatio.label, 'Ratio:', aspectRatio.ratio);
+                console.log('Calculated dimensions:', chartWidth, 'x', chartHeight);
+                
+                // Create or update the recording wrapper
+                const recordingWrapper = this.createOrUpdateRecordingWrapper(chartTitle, chartContainer, chartWidth, chartHeight);
+                
+                // Always add dashed border to visualize aspect ratio
+                if (recordingWrapper) {
+                    // Get the actual wrapper height for visualization
+                    const wrapperHeight = recordingWrapper.offsetHeight;
+                    this.addAspectRatioVisualization(recordingWrapper, chartWidth, wrapperHeight);
+                }
+                
+                // Re-render chart with new dimensions only if data exists
+                if (this.csv_data) {
+                    this.checkForm();
+                }
+            },
+            createOrUpdateRecordingWrapper: function(chartTitle, chartContainer, chartWidth, chartHeight) {
+                // Check if chartContainer exists and has a parent
+                if (!chartContainer || !chartContainer.parentElement) {
+                    console.warn('Chart container or its parent not found, cannot create wrapper');
+                    return null;
+                }
+                
+                // Remove existing wrapper if it exists
+                const existingWrapper = document.querySelector('.recording-wrapper');
+                if (existingWrapper) {
+                    // Move elements back to their original positions before removing wrapper
+                    const chartDiv = existingWrapper.querySelector('#chartDiv');
+                    const title = existingWrapper.querySelector('#graph-title');
+                    
+                    if (chartDiv) {
+                        existingWrapper.parentNode.insertBefore(chartDiv, existingWrapper);
+                    }
+                    if (title) {
+                        existingWrapper.parentNode.insertBefore(title, chartDiv);
+                        // Reset title display style to use Vue's reactive style
+                        title.style.cssText = '';
+                    }
+                    
+                    existingWrapper.remove();
+                }
+                
+                // Get the chart div (it should be back in its original position now)
+                const chartDiv = document.getElementById("chartDiv");
+                if (!chartDiv) {
+                    console.warn('Chart div not found after wrapper removal');
+                    return null;
+                }
+                
+                // Get the title element fresh each time (reuse existing chartTitle variable)
+                chartTitle = document.getElementById("graph-title");
+                console.log('Fresh title element lookup:', chartTitle);
+                if (chartTitle) {
+                    console.log('Title element current state - display:', chartTitle.style.display, 'parent:', chartTitle.parentElement);
+                }
+                
+                // Dynamically calculate title height based on actual rendered size
+                let titleHeight = 0;
+                if (chartTitle && this.showChartTitle) {
+                    // Temporarily add title to measure its height
+                    const tempContainer = document.createElement('div');
+                    tempContainer.style.cssText = `
+                        position: absolute;
+                        visibility: hidden;
+                        width: ${chartWidth}px;
+                        top: -9999px;
+                    `;
+                    document.body.appendChild(tempContainer);
+                    
+                    const tempTitle = chartTitle.cloneNode(true);
+                    tempContainer.appendChild(tempTitle);
+                    
+                    // Get the actual height
+                    titleHeight = Math.max(tempTitle.offsetHeight, tempTitle.scrollHeight) + 20; // Add margin
+                    
+                    // Clean up
+                    document.body.removeChild(tempContainer);
+                }
+                
+                // Calculate timeline height (increased to ensure full inclusion)
+                const timelineHeight = 80; // Increased from 50px to 80px
+                
+                // Add extra padding to ensure timeline is fully visible
+                const extraPadding = 20;
+                
+                // Calculate total height including title, timeline, and extra padding
+                const totalHeight = chartHeight + titleHeight + timelineHeight + extraPadding;
+                
+                // Create wrapper div
+                const wrapper = document.createElement('div');
+                wrapper.className = 'recording-wrapper';
+                wrapper.style.cssText = `
+                    position: relative;
+                    width: ${chartWidth}px;
+                    height: ${totalHeight}px;
+                    margin: 0 auto;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    padding: 20px 0 20px 20px;
+                `;
+                
+                // Insert wrapper before chart div
+                chartDiv.parentNode.insertBefore(wrapper, chartDiv);
+                
+                // Move title and chart into wrapper
+                if (chartTitle) {
+                    // Always add title to wrapper, but control visibility
+                    console.log('Adding title to wrapper, showChartTitle is:', this.showChartTitle);
+                    wrapper.appendChild(chartTitle);
+                    
+                    // Set the title styles based on visibility
+                    chartTitle.style.cssText = `
+                        margin: 0 0 10px 0;
+                        text-align: center;
+                        width: 100%;
+                        flex-shrink: 0;
+                        display: ${this.showChartTitle ? 'block' : 'none'};
+                        visibility: ${this.showChartTitle ? 'visible' : 'hidden'};
+                    `;
+                } else {
+                    console.log('No chart title element found');
+                }
+                
+                wrapper.appendChild(chartDiv);
+                
+                // Apply dimensions to chart div
+                chartDiv.style.width = chartWidth + 'px';
+                chartDiv.style.height = chartHeight + 'px';
+                chartDiv.style.margin = '0';
+                
+                console.log('Created wrapper with dimensions:', chartWidth, 'x', totalHeight);
+                console.log('Title height:', titleHeight, 'Timeline height:', timelineHeight, 'Extra padding:', extraPadding);
+                console.log('Show chart title:', this.showChartTitle, 'Title element:', chartTitle);
+                
+                return wrapper;
+            },
+            addAspectRatioVisualization: function(container, width, height) {
+                // Check if container exists
+                if (!container) {
+                    console.warn('Container not found, cannot add aspect ratio visualization');
+                    return;
+                }
+                
+                // Remove existing visualization
+                const existingViz = container.querySelector('.aspect-ratio-visualization');
+                if (existingViz) {
+                    existingViz.remove();
+                }
+                
+                // Create enhanced visualization overlay for video recording
+                const vizDiv = document.createElement('div');
+                vizDiv.className = 'aspect-ratio-visualization';
+                vizDiv.title = 'Use this area to guide your video recording tool selection';
+                
+                container.style.position = 'relative';
+                container.appendChild(vizDiv);
+            },
+            // Preview styling methods
+            getPreviewWrapperStyle: function() {
+                const aspectRatio = this.getCurrentAspectRatio();
+                const maxWidth = 320;
+                const maxHeight = 280;
+                
+                let width, height;
+                if (aspectRatio.ratio > 1) {
+                    // Landscape
+                    width = Math.min(maxWidth, maxHeight * aspectRatio.ratio);
+                    height = width / aspectRatio.ratio;
+                } else {
+                    // Portrait
+                    height = Math.min(maxHeight, maxWidth / aspectRatio.ratio);
+                    width = height * aspectRatio.ratio;
+                }
+                
+                return {
+                    width: width + 'px',
+                    height: height + 'px',
+                    margin: '0 auto',
+                    position: 'relative',
+                    border: '2px dashed #ff6b6b',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    backgroundColor: '#f8f9fa'
+                };
+            },
+            getPreviewChartStyle: function() {
+                return {
+                    width: '100%',
+                    height: 'auto',
+                    marginBottom: '10px'
+                };
+            },
+            getPreviewTimelineStyle: function() {
+                return {
+                    width: '100%',
+                    height: '40px',
+                    marginTop: '10px'
+                };
+            },
+            getPreviewRecordingBorderStyle: function() {
+                return {
+                    position: 'absolute',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    border: '2px dashed #ff6b6b',
+                    borderRadius: '8px',
+                    pointerEvents: 'none',
+                    zIndex: '10'
+                };
+            },
+            // Large preview styling methods
+            getPreviewWrapperStyleLarge: function() {
+                const aspectRatio = this.getCurrentAspectRatio();
+                const maxWidth = 520; // Increased to accommodate larger chart
+                const maxHeight = 450; // Increased to accommodate larger chart
+                
+                let width, height;
+                if (aspectRatio.ratio > 1) {
+                    // Landscape
+                    width = Math.min(maxWidth, maxHeight * aspectRatio.ratio);
+                    height = width / aspectRatio.ratio;
+                } else {
+                    // Portrait
+                    height = Math.min(maxHeight, maxWidth / aspectRatio.ratio);
+                    width = height * aspectRatio.ratio;
+                }
+                
+                return {
+                    width: width + 'px',
+                    height: height + 'px',
+                    margin: '0 auto',
+                    position: 'relative',
+                    border: '3px dashed #ff6b6b',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    backgroundColor: '#f8f9fa',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                };
+            },
+            getPreviewChartStyleLarge: function() {
+                return {
+                    width: '100%',
+                    height: 'auto',
+                    marginBottom: '15px'
+                };
+            },
+            getPreviewTimelineStyleLarge: function() {
+                return {
+                    width: '100%',
+                    height: '80px',
+                    marginTop: '15px'
+                };
+            },
+            getPreviewRecordingBorderStyleLarge: function() {
+                return {
+                    position: 'absolute',
+                    top: '0',
+                    left: '0',
+                    right: '0',
+                    bottom: '0',
+                    border: '3px dashed #ff6b6b',
+                    borderRadius: '12px',
+                    pointerEvents: 'none',
+                    zIndex: '10',
+                    animation: 'pulse-preview-large 2s ease-in-out infinite'
+                };
             }
         },
         mounted: function() {
             this.loadPresetsFromStorage();
+            // Initialize aspect ratio visualization
+            this.$nextTick(() => {
+                this.applyAspectRatioToChart();
+            });
+            
+            // Handle window resize
+            this.resizeHandler = () => {
+                this.$nextTick(() => {
+                    this.applyAspectRatioToChart();
+                });
+            };
+            window.addEventListener('resize', this.resizeHandler);
+            
+        },
+        beforeDestroy: function() {
+            // Clean up resize listener
+            if (this.resizeHandler) {
+                window.removeEventListener('resize', this.resizeHandler);
+            }
         },
         delimiters: ["((", "))"]
 
@@ -962,7 +1621,7 @@
         // provide full URLs or relative paths to icons you add under css/ or a new images/ folder
         "iconsByCategory": {
             "python": "images/python.png",
-            "c#": "images/csharp.png",
+            "c-sharp": "images/csharp.png",
             "c": "https://static.vecteezy.com/system/resources/previews/048/332/147/non_2x/c-programming-icon-free-png.png",
             "javascript": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/javascript.svg",
             "java": "images/java.png",

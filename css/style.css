@@ -498,13 +498,13 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
 /* Custom modal-xl styling for even wider modal */
 @media (min-width: 1200px) {
     .modal-xl {
-        max-width: 1400px;
+        max-width: 1600px;
     }
 }
 
 @media (min-width: 1600px) {
     .modal-xl {
-        max-width: 1600px;
+        max-width: 1800px;
     }
 }
 
@@ -528,11 +528,241 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
 
 /* Enhanced preview for wider layout */
 .preview-card {
-    min-height: 200px;
+    min-height: 400px;
 }
 
 .preview-container {
-    min-height: 180px;
+    min-height: 380px;
+}
+
+/* Complete Chart Preview Styles */
+.complete-preview-wrapper {
+    position: relative;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preview-chart-title {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    padding: 8px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eaeff4;
+}
+
+.preview-chart-container {
+    position: relative;
+    background: white;
+}
+
+.preview-chart-svg {
+    display: block;
+    background: white;
+}
+
+.preview-bar-group {
+    transition: all 0.3s ease;
+}
+
+.preview-bar {
+    transition: all 0.3s ease;
+}
+
+.preview-label {
+    font-weight: 600;
+    dominant-baseline: middle;
+    transition: all 0.3s ease;
+}
+
+.preview-number {
+    font-weight: 300;
+    dominant-baseline: middle;
+    transition: all 0.3s ease;
+}
+
+.preview-icon {
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.preview-grid line {
+    opacity: 0.6;
+}
+
+.preview-timeline {
+    background: white;
+    border-top: 1px solid #eaeff4;
+}
+
+.preview-timeline-svg {
+    display: block;
+}
+
+.preview-timeline-axis line {
+    opacity: 0.7;
+}
+
+.preview-progress-bar {
+    transition: width 0.3s ease;
+}
+
+.preview-recording-border {
+    animation: pulse-preview 2s ease-in-out infinite;
+}
+
+@keyframes pulse-preview {
+    0%, 100% {
+        border-color: #ff6b6b;
+        opacity: 0.8;
+    }
+    50% {
+        border-color: #ff8e8e;
+        opacity: 1;
+    }
+}
+
+.preview-info {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eaeff4;
+}
+
+.preview-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.8rem;
+}
+
+.stat-value {
+    color: #6c757d;
+    font-size: 0.75rem;
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Large Preview Styles */
+.preview-card-large {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 25px;
+    color: white;
+    height: 100%;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    min-height: 500px;
+}
+
+.preview-container-large {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    min-height: 450px;
+}
+
+.complete-preview-wrapper-large {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.preview-chart-title-large {
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: 700;
+    padding: 12px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #eaeff4;
+    border-radius: 8px 8px 0 0;
+}
+
+.preview-chart-title-inside {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 700;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #eaeff4;
+}
+
+.preview-chart-container-large {
+    position: relative;
+    background: white;
+}
+
+.preview-chart-svg-large {
+    display: block;
+    background: white;
+}
+
+.preview-timeline-large {
+    background: white;
+    border-top: 2px solid #eaeff4;
+}
+
+.preview-timeline-svg-large {
+    display: block;
+}
+
+.preview-info-large {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #eaeff4;
+}
+
+.preview-stats-large {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.preview-stats-large .stat-item {
+    padding: 8px 0;
+}
+
+.preview-stats-large .stat-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.preview-stats-large .stat-value {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+@keyframes pulse-preview-large {
+    0%, 100% {
+        border-color: #ff6b6b;
+        opacity: 0.9;
+        box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+    }
+    50% {
+        border-color: #ff8e8e;
+        opacity: 1;
+        box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.5);
+    }
 }
 
 /* Bar Colors Settings Styling - Wide Layout */
@@ -851,6 +1081,134 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     background: #a8a8a8;
 }
 
+/* Main Page Aspect Ratio Controls - Left Side */
+.aspect-ratio-controls-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.aspect-ratio-controls-left .aspect-ratio-label {
+    color: #2c3e50;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.aspect-ratio-controls-left .aspect-ratio-label i {
+    color: #50a1ff;
+    font-size: 0.9rem;
+}
+
+/* Chart Controls - Right Side */
+.chart-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.aspect-ratio-info {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.aspect-ratio-info i {
+    color: #50a1ff;
+    margin-right: 5px;
+}
+
+/* Enhanced Aspect Ratio Visualization for Video Recording */
+.aspect-ratio-visualization {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px dashed #ff6b6b;
+    pointer-events: none;
+    z-index: 10;
+    box-sizing: border-box;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.3);
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% {
+        border-color: #ff6b6b;
+        box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.3);
+    }
+    50% {
+        border-color: #ff8e8e;
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.5);
+    }
+}
+
+/* Recording area indicator */
+.aspect-ratio-visualization::before {
+    content: "RECORDING AREA";
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff6b6b;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    z-index: 11;
+}
+
+.aspect-ratio-visualization::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* Recording wrapper styling */
+.recording-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 200px;
+    padding: 20px 0 20px 20px; /* Top and left padding for recording area */
+}
+
+.recording-wrapper #graph-title {
+    margin-bottom: 10px !important;
+    text-align: center !important;
+    width: 100% !important;
+    flex-shrink: 0;
+}
+
+/* Ensure chart div takes remaining space */
+.recording-wrapper #chartDiv {
+    flex: 1;
+    min-height: 200px;
+}
+
+.chart-controls .btn {
+    margin-left: 4px;
+}
+
+.chart-controls .btn:first-child {
+    margin-left: 0;
+}
+
+
+
 /* Better responsive behavior */
 @media (max-width: 768px) {
     .modal-xl {
@@ -909,5 +1267,20 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     
     .btn-group .btn:last-child {
         margin-bottom: 0;
+    }
+    
+    /* Mobile layout adjustments */
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .aspect-ratio-controls-left {
+        align-items: center;
+        text-align: center;
+    }
+    
+    .chart-controls {
+        justify-content: center;
     }
 }
