@@ -29,7 +29,7 @@
     </svg>
   </a>
   <section class="section">
-    <div class="container">
+    <div class="container-fluid">
       <h1 id="main-title" class=" text-center">Bar chart race generator</h1>
       <div class="card border">
         <div class="card-body">
@@ -764,7 +764,7 @@
             // Aspect Ratio Settings
             selectedAspectRatio: 'desktop',
             aspectRatios: {
-                desktop: { ratio: 16/9, label: 'Desktop', width: 1920, height: 1080 },
+                desktop: { ratio: 16/9, label: 'Desktop', width: 1280, height: 720 },
                 mobile: { ratio: 9/16, label: 'Mobile', width: 1080, height: 1920 }
             },
         },
@@ -923,6 +923,8 @@
                 setTimeout(() => {
                     this.$nextTick(() => {
                         this.applyAspectRatioToChart();
+                        // Apply button positioning based on aspect ratio
+                        this.updateButtonPositioning(newRatio);
                     });
                 }, 100);
             },
@@ -1063,7 +1065,10 @@
                     self.errors.push('Number of bars to display required.');
                 }
                 e && e.preventDefault();
-                window.scrollTo({top: $("#chart-card").offset().top - 10, behavior: 'smooth'});
+                // Only scroll to chart if this is a form submission (not a restart)
+                if (e && e.type === 'submit') {
+                    window.scrollTo({top: $("#chart-card").offset().top - 10, behavior: 'smooth'});
+                }
             },
             applySettingsToChart: function() {
                 // Blur the active element to avoid keeping focus inside hidden modal
@@ -1218,6 +1223,29 @@
             getAspectRatioLabel: function() {
                 return this.aspectRatios[this.selectedAspectRatio].label;
             },
+            updateButtonPositioning: function(aspectRatio) {
+                const chartControls = document.querySelector('.chart-controls');
+                if (chartControls) {
+                    if (aspectRatio === 'mobile') {
+                        // Move buttons lower and to the right of the recording area for mobile ratio
+                        chartControls.style.position = 'absolute';
+                        chartControls.style.top = '250px';
+                        chartControls.style.right = '20px';
+                        chartControls.style.zIndex = '100';
+                        chartControls.style.transition = 'all 0.3s ease';
+                        chartControls.style.flexDirection = 'column';
+                        chartControls.style.gap = '8px';
+                    } else {
+                        // Reset to normal position for desktop ratio
+                        chartControls.style.position = '';
+                        chartControls.style.top = '';
+                        chartControls.style.right = '';
+                        chartControls.style.zIndex = '';
+                        chartControls.style.flexDirection = '';
+                        chartControls.style.gap = '';
+                    }
+                }
+            },
             getAspectRatioDimensions: function() {
                 const aspect = this.aspectRatios[this.selectedAspectRatio];
                 return `${aspect.width} × ${aspect.height}`;
@@ -1252,29 +1280,41 @@
                 }
                 
                 // Calculate dimensions based on aspect ratio
-                const containerWidth = parentContainer.clientWidth - 40; // Account for padding
-                const containerHeight = Math.min(650, window.innerHeight * 0.6); // Max height constraint
+                // Use full viewport dimensions without artificial limitations
+                const containerWidth = window.innerWidth;
+                const containerHeight = window.innerHeight;
                 
                 let chartWidth, chartHeight;
+                let scale = 1;
+                let scaleByWidth = 1;
+                let scaleByHeight = 1;
                 
                 if (aspectRatio.ratio > 1) {
                     // Landscape (desktop) - 16:9
-                    chartWidth = Math.min(containerWidth, containerHeight * aspectRatio.ratio);
-                    chartHeight = chartWidth / aspectRatio.ratio;
+                    // Fixed dimensions: 1280 x 720 (perfect 16:9 ratio)
+                    chartWidth = 1280;
+                    chartHeight = 720;
+                    
+                    // Verify the aspect ratio is correct
+                    const actualRatio = chartWidth / chartHeight;
+                    const expectedRatio = aspectRatio.ratio;
+                    console.log('Fixed dimensions:', chartWidth, 'x', chartHeight);
+                    console.log('Actual ratio:', actualRatio, 'Expected ratio:', expectedRatio);
+                    console.log('Ratio is correct:', Math.abs(actualRatio - expectedRatio) < 0.001);
                 } else {
                     // Portrait (mobile) - 9:16
-                    chartHeight = Math.min(containerHeight, containerWidth / aspectRatio.ratio);
-                    chartWidth = chartHeight * aspectRatio.ratio;
-                    
-                    // Ensure minimum width for mobile
-                    if (chartWidth < 300) {
-                        chartWidth = 300;
-                        chartHeight = chartWidth / aspectRatio.ratio;
-                    }
+                    // Fixed dimensions: 720 x 1280 (perfect 9:16 ratio)
+                    chartWidth = 720;
+                    chartHeight = 1280;
                 }
                 
                 console.log('Aspect Ratio:', aspectRatio.label, 'Ratio:', aspectRatio.ratio);
+                console.log('Viewport width:', window.innerWidth, 'Viewport height:', window.innerHeight);
+                console.log('Container width:', containerWidth, 'Container height:', containerHeight);
+                console.log('Target dimensions:', aspectRatio.width, 'x', aspectRatio.height);
+                console.log('Scale by width:', scaleByWidth, 'Scale by height:', scaleByHeight);
                 console.log('Calculated dimensions:', chartWidth, 'x', chartHeight);
+                console.log('Scale factor:', scale);
                 
                 // Create or update the recording wrapper
                 const recordingWrapper = this.createOrUpdateRecordingWrapper(chartTitle, chartContainer, chartWidth, chartHeight);
@@ -1360,8 +1400,8 @@
                 // Add extra padding to ensure timeline is fully visible
                 const extraPadding = 20;
                 
-                // Calculate total height including title, timeline, and extra padding
-                const totalHeight = chartHeight + titleHeight + timelineHeight + extraPadding;
+                // Use exact chart dimensions for the wrapper (no extra height)
+                const totalHeight = chartHeight;
                 
                 // Create wrapper div
                 const wrapper = document.createElement('div');
@@ -1375,7 +1415,7 @@
                     flex-direction: column;
                     align-items: center;
                     justify-content: flex-start;
-                    padding: 20px 0 20px 20px;
+                    padding: 20px 0 0 20px;
                 `;
                 
                 // Insert wrapper before chart div
@@ -1429,7 +1469,8 @@
                 // Create enhanced visualization overlay for video recording
                 const vizDiv = document.createElement('div');
                 vizDiv.className = 'aspect-ratio-visualization';
-                vizDiv.title = 'Use this area to guide your video recording tool selection';
+                vizDiv.title = `Recording Area: ${width} × ${height}px (Target: ${this.getCurrentAspectRatio().width} × ${this.getCurrentAspectRatio().height}px)`;
+                vizDiv.setAttribute('data-dimensions', `${width} × ${height}px`);
                 
                 container.style.position = 'relative';
                 container.appendChild(vizDiv);
@@ -1552,6 +1593,8 @@
             // Initialize aspect ratio visualization
             this.$nextTick(() => {
                 this.applyAspectRatioToChart();
+                // Initialize button positioning
+                this.updateButtonPositioning(this.selectedAspectRatio);
             });
             
             // Handle window resize
