@@ -670,23 +670,33 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     font-weight: 500;
 }
 
-/* Large Preview Styles */
-.preview-card-large {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    padding: 25px;
-    color: white;
-    height: 100%;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    min-height: 500px;
+/* Standalone Chart Preview Title */
+.preview-title-standalone {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    justify-content: center;
 }
 
-.preview-container-large {
-    background: white;
+.preview-title-standalone i {
+    color: #50a1ff;
+    font-size: 1rem;
+}
+
+/* Dashed Preview Container - The only container */
+.dashed-preview-container {
+    margin: 0 auto;
+    position: relative;
+    border: 3px dashed #ff6b6b;
     border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    min-height: 450px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .complete-preview-wrapper-large {
@@ -709,11 +719,11 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
 
 .preview-chart-title-inside {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-weight: 700;
-    padding: 8px;
+    padding: 4px;
     background: #f8f9fa;
-    border-radius: 6px;
+    border-radius: 4px;
     border: 1px solid #eaeff4;
 }
 
@@ -1135,29 +1145,29 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
 }
 
 /* Enhanced Aspect Ratio Visualization for Video Recording */
+/* Uses outline instead of border so it's OUTSIDE the recording area */
 .aspect-ratio-visualization {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border: 3px dashed #ff6b6b;
+    border: none;
+    outline: 3px dashed #ff6b6b;
+    outline-offset: -3px; /* Negative offset to draw outline INSIDE the element */
     pointer-events: none;
     z-index: 10;
     box-sizing: border-box;
     border-radius: 6px;
-    box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.3);
     animation: pulse-border 2s ease-in-out infinite;
 }
 
 @keyframes pulse-border {
     0%, 100% {
-        border-color: #ff6b6b;
-        box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.3);
+        outline-color: #ff6b6b;
     }
     50% {
-        border-color: #ff8e8e;
-        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.5);
+        outline-color: #ff8e8e;
     }
 }
 
@@ -1178,12 +1188,12 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     z-index: 11;
 }
 
-/* Add dimension info to top left of recording area */
+/* Add dimension info next to recording area label */
 .aspect-ratio-visualization::after {
     content: attr(data-dimensions);
     position: absolute;
-    top: -50px;
-    left: 0;
+    top: -35px;
+    left: calc(50% + 80px); /* Position to the right of RECORDING AREA label */
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 4px 8px;
@@ -1303,5 +1313,159 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     
     .chart-controls {
         justify-content: center;
+    }
+}
+
+/* ==================== OBS Integration Styles ==================== */
+
+/* OBS Controls Container */
+.obs-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Recording Button Pulse Animation */
+.recording-pulse {
+    animation: recording-pulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+}
+
+@keyframes recording-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* OBS Panel Styling */
+.obs-panel {
+    background: #f8f9fa;
+    border: 1px solid #eaeff4;
+    border-radius: 8px;
+}
+
+/* Recording Area Info Box */
+.recording-area-info {
+    background: white;
+    border: 1px solid #eaeff4;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.875rem;
+}
+
+.recording-area-info .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.recording-area-info .info-row:last-child {
+    border-bottom: none;
+}
+
+.recording-area-info .label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.recording-area-info .value {
+    color: #6c757d;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+/* OBS Status Badge */
+.badge-success {
+    background-color: #28a745;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+}
+
+/* OBS Button States */
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* OBS Connect Button */
+.obs-connect-btn {
+    transition: all 0.3s ease;
+}
+
+.obs-connect-btn.connected {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+/* OBS Error Alert */
+.obs-error-alert {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+
+/* OBS Setup Result */
+.obs-setup-success {
+    color: #28a745;
+}
+
+.obs-setup-error {
+    color: #dc3545;
+}
+
+/* Recording Timer Display */
+.recording-timer {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* OBS Instructions Alert */
+.obs-instructions {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+}
+
+.obs-instructions ol {
+    margin-bottom: 0;
+}
+
+.obs-instructions li {
+    margin-bottom: 4px;
+}
+
+/* Spinner animation for connecting state */
+.fa-spinner.fa-spin {
+    animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
     }
 }

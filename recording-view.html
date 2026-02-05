@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart Recording</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: white;
+        }
+        
+        #iframeContainer {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #chartIframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #waitingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        #waitingOverlay.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .waiting-text {
+            margin-top: 20px;
+            font-family: 'Open Sans', Arial, sans-serif;
+            color: #333;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="waitingOverlay">
+        <div class="spinner"></div>
+        <p class="waiting-text">Loading chart from main page...</p>
+    </div>
+    
+    <div id="iframeContainer">
+        <iframe id="chartIframe" src="about:blank"></iframe>
+    </div>
+
+    <script>
+        let config = null;
+        let targetWidth = 1280;
+        let targetHeight = 720;
+        let iframeReady = false;
+        
+        // Notify parent (main window) that popup is loaded
+        function sendToParent(message) {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.postMessage(message, '*');
+                } catch (e) {
+                    console.warn('Could not send message to parent:', e);
+                }
+            }
+        }
+        
+        // Send command to iframe (index.html in recording mode)
+        function sendToIframe(message) {
+            const iframe = document.getElementById('chartIframe');
+            if (iframe && iframe.contentWindow) {
+                try {
+                    iframe.contentWindow.postMessage(message, '*');
+                } catch (e) {
+                    console.warn('Could not send message to iframe:', e);
+                }
+            }
+        }
+        
+        // Request configuration from parent (main window)
+        sendToParent({ type: 'request-config' });
+        
+        // Handle window close - notify parent
+        window.addEventListener('beforeunload', function() {
+            sendToParent({ type: 'popup-closed' });
+        });
+        
+        // Ensure window inner dimensions match target
+        function ensureCorrectSize() {
+            const currentWidth = window.innerWidth;
+            const currentHeight = window.innerHeight;
+            
+            if (Math.abs(currentWidth - targetWidth) > 5 || Math.abs(currentHeight - targetHeight) > 5) {
+                const widthDiff = targetWidth - currentWidth;
+                const heightDiff = targetHeight - currentHeight;
+                window.resizeBy(widthDiff, heightDiff);
+            }
+        }
+        
+        // Listen for messages from parent window (main page) and iframe
+        window.addEventListener('message', function(event) {
+            const data = event.data;
+            if (!data || !data.type) return;
+            
+            const iframe = document.getElementById('chartIframe');
+            
+            console.log('Recording popup received message:', data.type, 'from:', event.source === window.opener ? 'opener' : (iframe && event.source === iframe.contentWindow ? 'iframe' : 'unknown'));
+            
+            // Messages from iframe (index.html in recording mode)
+            if (iframe && event.source === iframe.contentWindow) {
+                switch (data.type) {
+                    case 'iframe-ready':
+                        console.log('Iframe is ready, sending config');
+                        iframeReady = true;
+                        if (config) {
+                            sendToIframe({ type: 'init', config: config });
+                        }
+                        break;
+                        
+                    case 'chart-completed':
+                        // Forward to parent (main window)
+                        sendToParent(data);
+                        break;
+                        
+                    case 'ready':
+                        // Chart is rendered and ready
+                        document.getElementById('waitingOverlay').classList.add('hidden');
+                        sendToParent(data);
+                        break;
+                }
+                return; // Handled, exit early
+            }
+            
+            // Messages from parent (main window opener) - handle all other messages
+            // Don't strictly check event.source === window.opener as it may not work in all browsers
+            switch (data.type) {
+                case 'init':
+                    handleInit(data.config);
+                    break;
+                    
+                case 'play':
+                case 'pause':
+                case 'stop':
+                case 'restart':
+                    // Forward commands to iframe
+                    sendToIframe(data);
+                    break;
+            }
+        });
+        
+        // Handle initialization with config from parent (main window)
+        function handleInit(cfg) {
+            console.log('Recording popup: Received init config from main window', cfg);
+            config = cfg;
+            
+            // Set target dimensions from config
+            if (config.aspectRatio) {
+                targetWidth = config.aspectRatio.width;
+                targetHeight = config.aspectRatio.height;
+            }
+            
+            // Ensure window is correctly sized
+            ensureCorrectSize();
+            
+            // Load index.html in recording mode inside the iframe
+            // This uses the SAME rendering code as the main page
+            const iframe = document.getElementById('chartIframe');
+            const baseUrl = window.location.href.replace('recording-view.html', 'index.html');
+            iframe.src = baseUrl + '?mode=recording';
+            
+            console.log('Loading iframe with URL:', iframe.src);
+            
+            // If iframe is already ready (unlikely), send config immediately
+            if (iframeReady) {
+                sendToIframe({ type: 'init', config: config });
+            }
+        }
+        
+        // Handle resize events
+        window.addEventListener('resize', function() {
+            setTimeout(ensureCorrectSize, 100);
+        });
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <title>
-    FabDev | Bar chart race generator
+    Bar chart race generator
   </title>
   <meta property="og:title" content="Opensource bar chart race generator">
   <meta property="og:description" content="Generate your own bar chart race from a csv file thanks to this open source tool made by FabDev">
@@ -32,7 +32,13 @@
     <div class="container-fluid">
       <h1 id="main-title" class=" text-center">Bar chart race generator</h1>
       <div class="card border">
-        <div class="card-body">
+        <div class="card-header" @click="uploadPaneExpanded = !uploadPaneExpanded" style="cursor: pointer;">
+          <h5 class="mb-0">
+            <i class="fas fa-upload"></i> Upload CSV / Example Files
+            <i class="fas" :class="uploadPaneExpanded ? 'fa-chevron-up' : 'fa-chevron-down'" style="float: right;"></i>
+          </h5>
+        </div>
+        <div class="card-body" v-show="uploadPaneExpanded">
           <div class="row">
             <div class="col-lg-6">
               <form @submit="checkForm">
@@ -91,6 +97,285 @@
         </div>
       </div>
       <hr>
+      
+      <!-- Settings Section (moved from modal) -->
+      <div class="card border mb-4">
+        <div class="card-header" @click="chartSettingsExpanded = !chartSettingsExpanded" style="cursor: pointer;">
+          <h5 class="mb-0">
+            <i class="fas fa-cog"></i> Chart Settings
+            <i class="fas" :class="chartSettingsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'" style="float: right;"></i>
+          </h5>
+        </div>
+        <div class="card-body" v-show="chartSettingsExpanded">
+          <div class="row">
+            <!-- Basic Settings Column -->
+            <div class="col-lg-4 col-md-6">
+              <div class="settings-card">
+                <h5 class="card-title">
+                  <i class="fas fa-sliders-h"></i> Basic Settings
+                </h5>
+                <div class="form-group">
+                  <label for="s_title">Chart Title</label>
+                  <input id="s_title" v-model="title" class="form-control" type="text" placeholder="Enter chart title">
+                </div>
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label for="s_duration">Duration (seconds)</label>
+                    <input id="s_duration" v-model="duration" class="form-control" type="number" min="1" max="300">
+                  </div>
+                  <div class="form-group col-6">
+                    <label for="s_top_n">Number of Bars</label>
+                    <input id="s_top_n" v-model="top_n" class="form-control" type="number" min="1" max="50">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_grid" v-model="showGridlines">
+                    <label class="custom-control-label" for="s_grid">
+                      <i class="fas fa-th"></i> Show grid lines
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_chart_title" v-model="showChartTitle">
+                    <label class="custom-control-label" for="s_chart_title">
+                      <i class="fas fa-heading"></i> Show Chart Title
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_icons_left" v-model="iconsLeftOfAxis">
+                    <label class="custom-control-label" for="s_icons_left">
+                      <i class="fas fa-images"></i> Place icons left of Chart
+                    </label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="s_dynamic_scale" v-model="dynamicScaling">
+                    <label class="custom-control-label" for="s_dynamic_scale">
+                      <i class="fas fa-expand-arrows-alt"></i> Dynamic X-axis Scaling
+                    </label>
+                  </div>
+                  <small class="form-text text-muted" style="margin-left: 40px;">
+                    When enabled, the x-axis adjusts to current values for better screen usage. When disabled (default), the x-axis stays fixed to show true absolute growth.
+                  </small>
+                </div>
+                
+                <!-- Bar Colors Section -->
+                <div class="color-settings">
+                  <h6 class="color-title">
+                    <i class="fas fa-palette"></i> Bar Colors
+                  </h6>
+                  
+                  <!-- Color Mode Selection -->
+                  <div class="form-group">
+                    <label class="control-label">Color Mode</label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                      <input type="radio" class="btn-check" id="color_palette_main" v-model="barColorMode" value="palette">
+                      <label class="btn btn-outline-primary" for="color_palette_main">Palette</label>
+                      
+                      <input type="radio" class="btn-check" id="color_custom_main" v-model="barColorMode" value="custom">
+                      <label class="btn btn-outline-primary" for="color_custom_main">Custom</label>
+                    </div>
+                  </div>
+                  
+                  <!-- Palette Selection -->
+                  <div v-if="barColorMode === 'palette'" class="form-group">
+                    <label for="s_palette_main">Color Palette</label>
+                    <select id="s_palette_main" v-model="selectedPalette" class="form-control">
+                      <option v-for="(colors, name) in availablePalettes" :key="name" :value="name">
+                        (( name.charAt(0).toUpperCase() + name.slice(1) ))
+                      </option>
+                    </select>
+                    
+                    <!-- Palette Preview -->
+                    <div class="palette-preview mt-2">
+                      <div class="palette-colors">
+                        <div v-for="(color, index) in availablePalettes[selectedPalette]" 
+                             :key="index" 
+                             class="color-swatch" 
+                             :style="{ backgroundColor: color }"
+                             :title="color">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Custom Colors -->
+                  <div v-if="barColorMode === 'custom'" class="form-group">
+                    <label class="control-label">Custom Colors</label>
+                    <div class="custom-colors-container">
+                      <div v-for="(color, index) in customColors" :key="index" class="custom-color-item">
+                        <input type="color" 
+                               v-model="customColors[index]" 
+                               class="form-control color-input-small"
+                               :title="'Color ' + (index + 1)">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-danger ml-2" 
+                                @click="removeCustomColor(index)"
+                                v-if="customColors.length > 1">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-primary mt-2" 
+                              @click="addCustomColor">
+                        <i class="fas fa-plus"></i> Add Color
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Typography Column -->
+            <div class="col-lg-4 col-md-6">
+              <div class="settings-card">
+                <h5 class="card-title">
+                  <i class="fas fa-font"></i> Typography
+                </h5>
+                
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Bar Labels</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_label_font_main">Font</label>
+                      <select id="s_label_font_main" v-model="labelFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_label_size_main">Size</label>
+                      <input id="s_label_size_main" v-model.number="labelFontSize" class="form-control" type="number" min="8" max="32">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_label_color_main">Color</label>
+                      <input id="s_label_color_main" v-model="labelColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Chart Title</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_title_font_main">Font</label>
+                      <select id="s_title_font_main" v-model="titleFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_title_size_main">Size</label>
+                      <input id="s_title_size_main" v-model.number="titleFontSize" class="form-control" type="number" min="12" max="48">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_title_color_main">Color</label>
+                      <input id="s_title_color_main" v-model="titleColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_title_top_padding_main">Top padding</label>
+                      <input id="s_title_top_padding_main" v-model.number="titleTopPadding" class="form-control" type="number" min="0" max="200">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="typography-group">
+                  <h6 class="typography-subtitle">Numbers</h6>
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="s_value_font_main">Font</label>
+                      <select id="s_value_font_main" v-model="valueFontFamily" class="form-control">
+                        <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
+                      </select>
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_value_size_main">Size</label>
+                      <input id="s_value_size_main" v-model.number="valueFontSize" class="form-control" type="number" min="8" max="32">
+                    </div>
+                    <div class="form-group col-3">
+                      <label for="s_value_color_main">Color</label>
+                      <input id="s_value_color_main" v-model="valueColor" class="form-control color-input" type="color">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Layout & Positioning Column -->
+            <div class="col-lg-4 col-md-12">
+              <div class="settings-card">
+                <h5 class="card-title">
+                  <i class="fas fa-arrows-alt-h"></i> Layout & Positioning
+                </h5>
+                
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-tag"></i> Label Position
+                  </label>
+                  <input id="s_label_position_main" v-model.number="labelPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                  <div class="range-labels">
+                    <span>Inside Bar</span>
+                    <span>Outside Bar</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-image"></i> Icon Spacing
+                  </label>
+                  <input id="s_icon_margin_main" v-model.number="iconMargin" class="form-control-range" type="range" min="-50" max="50" step="2">
+                  <div class="range-labels">
+                    <span>Close</span>
+                    <span>Far</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-hashtag"></i> Number Spacing
+                  </label>
+                  <input id="s_number_position_main" v-model.number="numberPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
+                  <div class="range-labels">
+                    <span>Close</span>
+                    <span>Far</span>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-ruler-horizontal"></i> Minimum Bar Length
+                  </label>
+                  <input id="s_min_bar_length_main" v-model.number="minBarLength" class="form-control-range" type="range" min="0" max="200" step="10">
+                  <div class="range-labels">
+                    <span>0px</span>
+                    <span>200px</span>
+                  </div>
+                  <small class="form-text text-muted">Current: (( minBarLength ))px</small>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">
+                    <i class="fas fa-arrows-alt-h"></i> Right Margin
+                  </label>
+                  <input id="s_right_margin_main" v-model.number="rightMargin" class="form-control-range" type="range" min="100" max="500" step="10">
+                  <div class="range-labels">
+                    <span>100px</span>
+                    <span>500px</span>
+                  </div>
+                  <small class="form-text text-muted">Current: (( rightMargin ))px - Space for value labels</small>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div id="chart-card" class="card">
         <div class="card-body position-relative">
           <div class="d-flex justify-content-between align-items-center mb-4">
@@ -106,10 +391,45 @@
             </div>
             
             <!-- Right side: Chart Controls -->
-            <div class="chart-controls">
+            <div class="chart-controls d-flex align-items-center">
+              <!-- OBS Recording Button (only shows when OBS is ready) -->
+              <div class="obs-controls mr-3" v-if="obsReady">
+                <button type="button" 
+                        class="btn btn-danger" 
+                        :class="{ 'recording-pulse': obsRecording }"
+                        @click="toggleOBSRecording">
+                  <i class="fas" :class="obsRecording ? 'fa-stop' : 'fa-circle'"></i>
+                  <span v-if="obsRecording">(( obsRecordingTime ))</span>
+                  <span v-else>Record</span>
+                </button>
+              </div>
+              
+              <!-- OBS Connect/Setup Button -->
+              <button type="button" 
+                      class="btn btn-sm mr-2"
+                      :class="obsReady ? 'btn-success' : (obsConnecting || obsSettingUp ? 'btn-warning' : 'btn-outline-secondary')"
+                      @click="autoConnectAndSetupOBS"
+                      :disabled="obsConnecting || obsSettingUp"
+                      :title="obsReady ? 'OBS Ready - Click to disconnect' : (obsConnecting ? 'Connecting...' : (obsSettingUp ? 'Setting up...' : 'Connect to OBS and open recording window'))">
+                <i class="fas" :class="obsConnecting || obsSettingUp ? 'fa-spinner fa-spin' : (obsReady ? 'fa-check-circle' : 'fa-video')"></i>
+                <span class="d-none d-md-inline ml-1" v-if="obsConnecting">Connecting...</span>
+                <span class="d-none d-md-inline ml-1" v-else-if="obsSettingUp">Setting up...</span>
+                <span class="d-none d-md-inline ml-1" v-else-if="obsReady">Ready</span>
+                <span class="d-none d-md-inline ml-1" v-else>OBS</span>
+              </button>
+              
+              <!-- Close Popup Button (shown when popup is open) -->
+              <button type="button" 
+                      class="btn btn-sm btn-outline-danger mr-2"
+                      v-if="isRecordingPopupOpen()"
+                      @click="closeRecordingPopup"
+                      title="Close recording popup window">
+                <i class="fas fa-times"></i>
+                <span class="d-none d-md-inline ml-1">Close Popup</span>
+              </button>
+              
               <button type="button" class="btn btn-outline-primary" v-on:click="stopRace">Stop</button>
               <button type="button" class="btn btn-outline-primary" v-on:click="checkForm">Restart</button>
-              <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#settingsModal">Settings</button>
             </div>
           </div>
           
@@ -207,479 +527,7 @@
       </div>
     </div>
   </div>
-  <!-- Settings Modal -->
-  <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsLabel">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title" id="settingsLabel">
-            <i class="fas fa-cog"></i> Chart Settings
-          </h2>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <!-- New Layout: Settings on Left, Large Preview on Right -->
-          <div class="row">
-            <!-- Left Side: All Settings (2 columns) -->
-            <div class="col-lg-6">
-              <div class="row">
-                <!-- Basic Settings Column -->
-                <div class="col-md-6">
-                  <div class="settings-card">
-                    <h5 class="card-title">
-                      <i class="fas fa-sliders-h"></i> Basic Settings
-                    </h5>
-                    <div class="form-group">
-                      <label for="s_title">Chart Title</label>
-                      <input id="s_title" v-model="title" class="form-control" type="text" placeholder="Enter chart title">
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group col-6">
-                        <label for="s_duration">Duration (seconds)</label>
-                        <input id="s_duration" v-model="duration" class="form-control" type="number" min="1" max="300">
-                      </div>
-                      <div class="form-group col-6">
-                        <label for="s_top_n">Number of Bars</label>
-                        <input id="s_top_n" v-model="top_n" class="form-control" type="number" min="1" max="50">
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="s_grid" v-model="showGridlines">
-                        <label class="custom-control-label" for="s_grid">
-                          <i class="fas fa-th"></i> Show grid lines
-                        </label>
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="s_chart_title" v-model="showChartTitle">
-                        <label class="custom-control-label" for="s_chart_title">
-                          <i class="fas fa-heading"></i> Show Chart Title
-                        </label>
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="s_icons_left" v-model="iconsLeftOfAxis">
-                        <label class="custom-control-label" for="s_icons_left">
-                          <i class="fas fa-images"></i> Place icons left of Chart
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <!-- Bar Colors Section -->
-                    <div class="color-settings">
-                      <h6 class="color-title">
-                        <i class="fas fa-palette"></i> Bar Colors
-                      </h6>
-                      
-                      <!-- Color Mode Selection -->
-                      <div class="form-group">
-                        <label class="control-label">Color Mode</label>
-                        <div class="btn-group btn-group-sm w-100" role="group">
-                          <input type="radio" class="btn-check" id="color_palette" v-model="barColorMode" value="palette">
-                          <label class="btn btn-outline-primary" for="color_palette">Palette</label>
-                          
-                          <input type="radio" class="btn-check" id="color_custom" v-model="barColorMode" value="custom">
-                          <label class="btn btn-outline-primary" for="color_custom">Custom</label>
-                        </div>
-                      </div>
-                      
-                      <!-- Palette Selection -->
-                      <div v-if="barColorMode === 'palette'" class="form-group">
-                        <label for="s_palette">Color Palette</label>
-                        <select id="s_palette" v-model="selectedPalette" class="form-control">
-                          <option v-for="(colors, name) in availablePalettes" :key="name" :value="name">
-                            (( name.charAt(0).toUpperCase() + name.slice(1) ))
-                          </option>
-                        </select>
-                        
-                        <!-- Palette Preview -->
-                        <div class="palette-preview mt-2">
-                          <div class="palette-colors">
-                            <div v-for="(color, index) in availablePalettes[selectedPalette]" 
-                                 :key="index" 
-                                 class="color-swatch" 
-                                 :style="{ backgroundColor: color }"
-                                 :title="color">
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Custom Colors -->
-                      <div v-if="barColorMode === 'custom'" class="form-group">
-                        <label class="control-label">Custom Colors</label>
-                        <div class="custom-colors-container">
-                          <div v-for="(color, index) in customColors" :key="index" class="custom-color-item">
-                            <input type="color" 
-                                   v-model="customColors[index]" 
-                                   class="form-control color-input-small"
-                                   :title="'Color ' + (index + 1)">
-                            <button type="button" 
-                                    class="btn btn-sm btn-outline-danger ml-2" 
-                                    @click="removeCustomColor(index)"
-                                    v-if="customColors.length > 1">
-                              <i class="fas fa-times"></i>
-                            </button>
-                          </div>
-                          <button type="button" 
-                                  class="btn btn-sm btn-outline-primary mt-2" 
-                                  @click="addCustomColor">
-                            <i class="fas fa-plus"></i> Add Color
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Typography & Layout Column -->
-                <div class="col-md-6">
-                  <div class="settings-card">
-                    <h5 class="card-title">
-                      <i class="fas fa-font"></i> Typography
-                    </h5>
-                    
-                    <div class="typography-group">
-                      <h6 class="typography-subtitle">Bar Labels</h6>
-                      <div class="form-row">
-                        <div class="form-group col-6">
-                          <label for="s_label_font">Font</label>
-                          <select id="s_label_font" v-model="labelFontFamily" class="form-control">
-                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_label_size">Size</label>
-                          <input id="s_label_size" v-model.number="labelFontSize" class="form-control" type="number" min="8" max="32">
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_label_color">Color</label>
-                          <input id="s_label_color" v-model="labelColor" class="form-control color-input" type="color">
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="typography-group">
-                      <h6 class="typography-subtitle">Chart Title</h6>
-                      <div class="form-row">
-                        <div class="form-group col-6">
-                          <label for="s_title_font">Font</label>
-                          <select id="s_title_font" v-model="titleFontFamily" class="form-control">
-                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_title_size">Size</label>
-                          <input id="s_title_size" v-model.number="titleFontSize" class="form-control" type="number" min="12" max="48">
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_title_color">Color</label>
-                          <input id="s_title_color" v-model="titleColor" class="form-control color-input" type="color">
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="typography-group">
-                      <h6 class="typography-subtitle">Numbers</h6>
-                      <div class="form-row">
-                        <div class="form-group col-6">
-                          <label for="s_value_font">Font</label>
-                          <select id="s_value_font" v-model="valueFontFamily" class="form-control">
-                            <option v-for="font in availableFonts" :key="font" :value="font">(( font ))</option>
-                          </select>
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_value_size">Size</label>
-                          <input id="s_value_size" v-model.number="valueFontSize" class="form-control" type="number" min="8" max="32">
-                        </div>
-                        <div class="form-group col-3">
-                          <label for="s_value_color">Color</label>
-                          <input id="s_value_color" v-model="valueColor" class="form-control color-input" type="color">
-                        </div>
-                      </div>
-                    </div>
-
-                    <h5 class="card-title mt-4">
-                      <i class="fas fa-arrows-alt-h"></i> Layout & Positioning
-                    </h5>
-                    
-                    <div class="control-group">
-                      <label class="control-label">
-                        <i class="fas fa-tag"></i> Label Position
-                      </label>
-                      <input id="s_label_position" v-model.number="labelPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
-                      <div class="range-labels">
-                        <span>Inside Bar</span>
-                        <span>Outside Bar</span>
-                      </div>
-                    </div>
-
-                    <div class="control-group">
-                      <label class="control-label">
-                        <i class="fas fa-image"></i> Icon Spacing
-                      </label>
-                      <input id="s_icon_margin" v-model.number="iconMargin" class="form-control-range" type="range" min="-50" max="50" step="2">
-                      <div class="range-labels">
-                        <span>Close</span>
-                        <span>Far</span>
-                      </div>
-                    </div>
-
-                    <div class="control-group">
-                      <label class="control-label">
-                        <i class="fas fa-hashtag"></i> Number Spacing
-                      </label>
-                      <input id="s_number_position" v-model.number="numberPosition" class="form-control-range" type="range" min="-100" max="100" step="5">
-                      <div class="range-labels">
-                        <span>Close</span>
-                        <span>Far</span>
-                      </div>
-                    </div>
-
-                    <div class="control-group">
-                      <label class="control-label">
-                        <i class="fas fa-arrows-alt-v"></i> Bar Width
-                      </label>
-                      <input id="s_bar_width" v-model.number="barWidth" class="form-control-range" type="range" min="0.3" max="2" step="0.1">
-                      <div class="range-labels">
-                        <span>Thin</span>
-                        <span>Thick</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right Side: Large Preview (6 columns) -->
-            <div class="col-lg-6">
-              <div class="preview-card-large">
-                <h5 class="preview-title">
-                  <i class="fas fa-eye"></i> Complete Chart Preview
-                </h5>
-                <div class="preview-container-large">
-                  <div class="preview-header">
-                    <span class="preview-label-text">How your complete chart will look in the recording area</span>
-                  </div>
-                  
-                  <!-- Complete Chart Preview -->
-                  <div class="complete-preview-wrapper-large" :style="getPreviewWrapperStyleLarge()">
-                    <!-- Main Chart Preview -->
-                    <div class="preview-chart-container-large" :style="getPreviewChartStyleLarge()">
-                      <!-- Chart Title Preview - Inside SVG -->
-                      <div v-if="showChartTitle" 
-                           class="preview-chart-title-inside" 
-                           :style="'font-family: ' + titleFontFamily + '; font-size: ' + Math.min(titleFontSize, 20) + 'px; color: ' + titleColor + ';'">
-                        (( title ))
-                      </div>
-                      <svg :width="previewChartWidthLarge" :height="previewChartHeightLarge" class="preview-chart-svg-large" :viewBox="'0 0 ' + previewChartWidthLarge + ' ' + previewChartHeightLarge">
-                        <!-- Grid lines -->
-                        <g v-if="showGridlines" class="preview-grid">
-                          <line v-for="i in 4" :key="'grid-' + i" 
-                                :x1="previewMarginLarge.left + (i * previewChartWidthLarge / 4)" 
-                                :y1="previewMarginLarge.top" 
-                                :x2="previewMarginLarge.left + (i * previewChartWidthLarge / 4)" 
-                                :y2="previewChartHeightLarge - previewMarginLarge.bottom" 
-                                stroke="#cecece" stroke-width="1"></line>
-                        </g>
-                        
-                        <!-- Preview bars -->
-                        <g v-for="(bar, index) in previewBarsLarge" :key="'bar-' + index" class="preview-bar-group">
-                          <!-- Bar -->
-                          <rect class="preview-bar" 
-                                :x="previewMarginLarge.left" 
-                                :width="bar.width" 
-                                :y="bar.y" 
-                                :height="bar.height" 
-                                :fill="bar.color" 
-                                rx="2"></rect>
-                          
-                          <!-- Bar label (white text on colored bar) -->
-                          <text class="preview-label" 
-                                :x="bar.labelX" 
-                                :y="bar.labelY" 
-                                :style="'font-family: ' + labelFontFamily + '; font-size: ' + Math.min(labelFontSize, 14) + 'px; fill: white; font-weight: 600;'"
-                                text-anchor="start">(( bar.name ))</text>
-                          
-                          <!-- Bar icon (to the right of bar) -->
-                          <image v-if="bar.hasIcon" 
-                                 class="preview-icon" 
-                                 :x="bar.iconX" 
-                                 :y="bar.iconY" 
-                                 width="24" 
-                                 height="24" 
-                                 :href="bar.iconUrl"></image>
-                          
-                          <!-- Bar value (to the right of icon) -->
-                          <text class="preview-number" 
-                                :x="bar.numberX" 
-                                :y="bar.numberY" 
-                                :style="'font-family: ' + valueFontFamily + '; font-size: ' + Math.min(valueFontSize, 14) + 'px; fill: ' + valueColor + '; font-weight: 600;'">(( bar.value ))</text>
-                        </g>
-                      </svg>
-                    </div>
-                    
-                    <!-- Timeline Preview -->
-                    <div class="preview-timeline-large" :style="getPreviewTimelineStyleLarge()">
-                      <svg :width="previewChartWidthLarge" height="80" class="preview-timeline-svg-large" :viewBox="'0 0 ' + previewChartWidthLarge + ' 80'">
-                        <!-- Timeline axis -->
-                        <g class="preview-timeline-axis">
-                          <line :x1="previewMarginLarge.left" :y1="30" :x2="previewChartWidthLarge - previewMarginLarge.right" :y2="30" stroke="#aaaaaa" stroke-width="1"></line>
-                          <!-- Timeline ticks and years -->
-                          <g v-for="(year, i) in ['2010', '2012', '2014', '2016', '2018', '2020']" :key="'tick-' + i">
-                            <line :x1="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
-                                  :y1="25" 
-                                  :x2="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
-                                  :y2="35" 
-                                  stroke="#aaaaaa" stroke-width="1"></line>
-                            <text :x="previewMarginLarge.left + (i * (previewChartWidthLarge - previewMarginLarge.left - previewMarginLarge.right) / 5)" 
-                                  :y="45" 
-                                  text-anchor="middle" 
-                                  style="font-size: 12px; fill: #6c757d;">(( year ))</text>
-                          </g>
-                        </g>
-                        <!-- Progress bar -->
-                        <rect class="preview-progress-bar" 
-                              :x="previewMarginLarge.left" 
-                              :y="29" 
-                              :width="previewChartWidthLarge * 0.3" 
-                              :height="2" 
-                              fill="#505050"></rect>
-                        <!-- Date display -->
-                        <text :x="previewChartWidthLarge - previewMarginLarge.right" 
-                              :y="70" 
-                              text-anchor="end" 
-                              style="font-size: 14px; fill: #505050; font-weight: 600;">June 01, 2020</text>
-                      </svg>
-                    </div>
-                    
-                    <!-- Recording Area Border -->
-                    <div class="preview-recording-border-large" :style="getPreviewRecordingBorderStyleLarge()"></div>
-                  </div>
-                  
-                  <!-- Preview Info -->
-                  <div class="preview-info-large">
-                    <div class="preview-stats-large">
-                      <div class="stat-item">
-                        <span class="stat-label">Aspect Ratio:</span>
-                        <span class="stat-value">(( getAspectRatioLabel() ))</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-label">Dimensions:</span>
-                        <span class="stat-value">(( getAspectRatioDimensions() ))</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-label">Bars:</span>
-                        <span class="stat-value">(( top_n ))</span>
-                      </div>
-                      <div class="stat-item">
-                        <span class="stat-label">Duration:</span>
-                        <span class="stat-value">(( duration ))s</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Theme Presets Section - Compact -->
-          <div class="row mt-3">
-            <div class="col-12">
-              <div class="presets-card">
-                <div class="presets-header">
-                  <h5 class="presets-title">
-                    <i class="fas fa-bookmark"></i> Theme Presets
-                  </h5>
-                  <div class="presets-actions">
-                    <div class="input-group input-group-sm">
-                      <input v-model="newPresetName" 
-                             class="form-control" 
-                             type="text" 
-                             placeholder="Preset name"
-                             maxlength="50">
-                      <div class="input-group-append">
-                        <button type="button" 
-                                class="btn btn-outline-success" 
-                                @click="savePreset"
-                                :disabled="!newPresetName.trim()">
-                          <i class="fas fa-save"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="btn-group btn-group-sm ml-2">
-                      <button type="button" 
-                              class="btn btn-outline-info" 
-                              @click="loadDefaultPreset"
-                              :disabled="!themePresets[defaultPresetName]">
-                        <i class="fas fa-home"></i>
-                      </button>
-                      <button type="button" 
-                              class="btn btn-outline-secondary" 
-                              @click="themePresets = {}; savePresetsToStorage(); currentPresetName = ''"
-                              v-if="Object.keys(themePresets).length > 0">
-                        <i class="fas fa-broom"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="presets-list">
-                  <div v-for="(preset, name) in themePresets" :key="name" class="preset-item">
-                    <div class="preset-info">
-                       <span class="preset-name" :class="{ 'default-preset': name === defaultPresetName }">
-                         (( name ))
-                         <i v-if="name === defaultPresetName" class="fas fa-star text-warning ml-1" title="Default Preset"></i>
-                       </span>
-                       <span class="preset-details">
-                         (( preset.title )) • (( preset.duration ))s • (( preset.top_n )) bars
-                       </span>
-                    </div>
-                    <div class="preset-actions">
-                      <button type="button" 
-                              class="btn btn-sm btn-outline-primary" 
-                              @click="loadPreset(name)"
-                              title="Load Preset">
-                        <i class="fas fa-download"></i>
-                      </button>
-                      <button type="button" 
-                              class="btn btn-sm btn-outline-warning" 
-                              @click="setAsDefault(name)"
-                              :disabled="name === defaultPresetName"
-                              title="Set as Default">
-                        <i class="fas fa-star"></i>
-                      </button>
-                      <button type="button" 
-                              class="btn btn-sm btn-outline-danger" 
-                              @click="deletePreset(name)"
-                              :disabled="name === defaultPresetName"
-                              title="Delete Preset">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div v-if="Object.keys(themePresets).length === 0" class="no-presets">
-                    <i class="fas fa-info-circle"></i>
-                    No presets saved yet. Save your current settings to create your first preset!
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" v-on:click="applySettingsToChart">Apply</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
+   
 </main>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -691,6 +539,7 @@
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 <script src="js/barchartrace.js"></script>
+<script src="js/obs-connector.js"></script>
 <script>
     const app = new Vue({
         el: '#app',
@@ -707,8 +556,15 @@
             iconsLeftOfAxis: false,
             showGridlines: true,
             showChartTitle: true,
+            dynamicScaling: false,
+            chartSettingsExpanded: true,
+            uploadPaneExpanded: true,
+            
+            // Recording mode (when loaded inside iframe in popup)
+            isRecordingMode: false,
+            titleTopPadding: 20,
             labelFontFamily: 'Open Sans',
-            labelFontSize: 16,
+            labelFontSize: 24,
             labelColor: '#202020',
             titleFontFamily: 'Open Sans',
             titleFontSize: 24,
@@ -719,7 +575,9 @@
             iconMargin: 8,
             numberPosition: 18,
             labelPosition: 50,
-            barWidth: 1,
+            minBarLength: 100,
+            rightMargin: 150,
+
             barColorMode: 'palette', // 'palette' or 'custom'
             selectedPalette: 'default',
             customColors: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'],
@@ -756,17 +614,39 @@
                 'Webdings',
                 'Wingdings'
             ],
-            // Theme Presets
-            themePresets: {},
-            currentPresetName: '',
-            newPresetName: '',
-            defaultPresetName: 'Default',
             // Aspect Ratio Settings
             selectedAspectRatio: 'desktop',
             aspectRatios: {
                 desktop: { ratio: 16/9, label: 'Desktop', width: 1280, height: 720 },
                 mobile: { ratio: 9/16, label: 'Mobile', width: 1080, height: 1920 }
             },
+            
+            // OBS Integration Settings
+            obsConnector: null,
+            obsConnected: false,
+            obsConnecting: false,
+            obsRecording: false,
+            obsRecordingStartTime: null,
+            obsRecordingTime: '00:00',
+            obsRecordingTimer: null,
+            obsReady: false,  // True when connected AND setup complete
+            obsUrl: 'ws://localhost:4455',
+            obsPassword: '',
+            obsError: null,
+            obsSceneName: 'Bar Chart Race Recording',
+            obsSettingUp: false,
+            obsSetupResult: null,
+            recordingAreaInfo: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0
+            },
+            
+            // Recording Popup Window
+            recordingPopup: null,
+            recordingPopupReady: false,
+            recordingPopupAspectRatio: null,  // Which aspect ratio the popup was opened with
         },
         computed: {
             previewBarWidth: function() {
@@ -810,26 +690,65 @@
                 const barHeight = Math.max(8, (this.previewChartHeight - this.previewMargin.top - this.previewMargin.bottom) / this.top_n * this.barWidth);
                 const barSpacing = (this.previewChartHeight - this.previewMargin.top - this.previewMargin.bottom) / this.top_n;
                 
-                // Sample data for preview
-                const sampleData = [
-                    { name: 'Python', value: '1,234', width: this.previewChartWidth * 0.8 },
-                    { name: 'JavaScript', value: '987', width: this.previewChartWidth * 0.6 },
-                    { name: 'Java', value: '756', width: this.previewChartWidth * 0.45 },
-                    { name: 'C++', value: '543', width: this.previewChartWidth * 0.32 },
-                    { name: 'C#', value: '321', width: this.previewChartWidth * 0.19 }
-                ];
+                // Use actual CSV data for preview
+                let previewData = [];
+                if (this.csv_data && this.csv_data.length > 0) {
+                    try {
+                        // Get the data point at 80% through the dataset (matching progress bar and date)
+                        const dataIndex = Math.floor(this.csv_data.length * 0.8);
+                        const currentData = this.csv_data[dataIndex];
+                        if (!currentData) {
+                            throw new Error('No data available');
+                        }
+                        
+                        const dataKeys = Object.keys(currentData).filter(key => key.toLowerCase() !== 'date');
+                        if (dataKeys.length === 0) {
+                            throw new Error('No data columns found');
+                        }
+                        
+                        // Filter out non-numeric values and get max value safely
+                        const numericData = dataKeys.map(key => ({
+                            key: key,
+                            value: parseFloat(currentData[key]) || 0
+                        })).filter(item => !isNaN(item.value));
+                        
+                        if (numericData.length === 0) {
+                            throw new Error('No numeric data found');
+                        }
+                        
+                        const maxValue = Math.max(...numericData.map(item => item.value));
+                        const chartWidth = this.previewChartWidth || 300; // Fallback width
+                        
+                        // Prevent division by zero
+                        const safeMaxValue = maxValue > 0 ? maxValue : 1;
+                        
+                        // Create preview data from actual CSV
+                        previewData = numericData.map(item => ({
+                            name: item.key,
+                            value: item.value.toString(),
+                            width: chartWidth * (item.value / safeMaxValue)
+                        })).sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, this.top_n || 5);
+                    } catch (error) {
+                        console.warn('Error processing CSV data for preview:', error);
+                        // No fallback data - return empty array on error
+                        previewData = [];
+                    }
+                } else {
+                    // No fallback data - return empty array when no CSV is loaded
+                    previewData = [];
+                }
                 
-                sampleData.forEach((item, index) => {
+                previewData.forEach((item, index) => {
                     if (index >= this.top_n) return;
                     
                     const y = this.previewMargin.top + (index * barSpacing) + (barSpacing - barHeight) / 2;
-                    const labelX = Math.max(this.previewMargin.left + 4, item.width - this.labelPosition);
+                    const labelX = Math.max(this.previewMargin.left + 8, item.width - this.labelPosition);
                     const iconX = this.iconsLeftOfAxis 
                         ? (this.previewMargin.left - this.iconMargin - 16)
-                        : (item.width + this.iconMargin);
+                        : (item.width + this.iconMargin + 8);
                     const numberX = this.iconsLeftOfAxis
                         ? (item.width + this.numberPosition)
-                        : (item.width + this.iconMargin + 16 + this.numberPosition);
+                        : (item.width + this.iconMargin + 24 + this.numberPosition);
                     
                     bars.push({
                         name: item.name,
@@ -850,50 +769,157 @@
                 
                 return bars;
             },
-            // Large preview properties
+            
+            // Large preview properties - dynamic aspect ratio from main page
             previewChartWidthLarge: function() {
-                return 450; // Increased width to accommodate all elements
+                const aspectRatio = this.getCurrentAspectRatio();
+                const scale = 0.9; // Same scale as wrapper
+                
+                if (aspectRatio.ratio > 1) {
+                    // Landscape - use width as base
+                    const baseWidth = 800;
+                    return Math.floor(baseWidth * scale);
+                } else {
+                    // Portrait - calculate width from height
+                    const baseHeight = 600;
+                    const scaledHeight = Math.floor(baseHeight * scale);
+                    const width = Math.floor(scaledHeight * aspectRatio.ratio);
+                    console.log('Portrait preview width calculation:', { aspectRatio: aspectRatio.ratio, scaledHeight, width });
+                    return Math.max(100, width); // Minimum 100px width for portrait
+                }
             },
             previewChartHeightLarge: function() {
-                return 320; // Increased height to fit all bars and title
+                const aspectRatio = this.getCurrentAspectRatio();
+                const scale = 0.9; // Same scale as wrapper
+                
+                if (aspectRatio.ratio > 1) {
+                    // Landscape - calculate height from width
+                    const baseWidth = 800;
+                    const scaledWidth = Math.floor(baseWidth * scale);
+                    return Math.floor(scaledWidth / aspectRatio.ratio);
+                } else {
+                    // Portrait - use height as base
+                    const baseHeight = 600;
+                    return Math.floor(baseHeight * scale);
+                }
             },
             previewMarginLarge: function() {
+                const scale = 0.9; // Same scale as wrapper
+                
+                // Scale margins proportionally like the main chart, but reduce top margin
+                const mainMargin = {
+                    top: 10, // Reduced from 20 to bring title closer to bars
+                    right: 60, // Reduced from 80 to prevent number overflow
+                    bottom: 0,
+                    left: 0
+                };
+                
                 return {
-                    top: this.showChartTitle ? 60 : 30, // More space for title
-                    right: 150, // Increased right margin for numbers
-                    bottom: 80, // More space for timeline
-                    left: this.iconsLeftOfAxis ? 50 : 20
+                    top: Math.floor(mainMargin.top * scale),
+                    right: Math.floor(mainMargin.right * scale),
+                    bottom: Math.floor(mainMargin.bottom * scale),
+                    left: Math.floor(mainMargin.left * scale)
                 };
             },
             previewBarsLarge: function() {
                 const bars = [];
                 const colors = this.getBarColors();
-                const barHeight = Math.max(12, (this.previewChartHeightLarge - this.previewMarginLarge.top - this.previewMarginLarge.bottom) / this.top_n * this.barWidth);
-                const barSpacing = (this.previewChartHeightLarge - this.previewMarginLarge.top - this.previewMarginLarge.bottom) / this.top_n;
+                const scale = 0.9; // Same scale as wrapper
                 
-                // Sample data for preview - ensure bars fit within recording area
-                const maxBarWidth = this.previewChartWidthLarge - this.previewMarginLarge.left - this.previewMarginLarge.right - 80; // Extra space for icons and numbers
-                const sampleData = [
-                    { name: 'Python', value: '15', width: maxBarWidth * 0.9, iconUrl: 'images/python.png' },
-                    { name: 'JavaScript', value: '11', width: maxBarWidth * 0.7, iconUrl: 'images/js.png' },
-                    { name: 'Java', value: '7', width: maxBarWidth * 0.45, iconUrl: 'images/java.png' },
-                    { name: 'C#', value: '5', width: maxBarWidth * 0.32, iconUrl: 'images/csharp.png' },
-                    { name: 'PHP', value: '4', width: maxBarWidth * 0.25, iconUrl: 'images/perl.svg' },
-                    { name: 'R', value: '3', width: maxBarWidth * 0.19, iconUrl: 'images/r.png' },
-                    { name: 'C++', value: '3', width: maxBarWidth * 0.19, iconUrl: 'images/csharp.png' },
-                    { name: 'Swift', value: '2', width: maxBarWidth * 0.12, iconUrl: 'images/swift.png' },
-                    { name: 'C', value: '1', width: maxBarWidth * 0.06, iconUrl: 'images/csharp.png' },
-                    { name: 'Ruby', value: '0', width: maxBarWidth * 0.02, iconUrl: 'images/ruby.png' }
-                ];
+                // Calculate bar padding like the main chart
+                const availableHeight = this.previewChartHeightLarge - this.previewMarginLarge.bottom - this.previewMarginLarge.top;
+                const barPadding = availableHeight / (this.top_n * 5);
+                const adjustedBarPadding = barPadding * (2 - this.barWidth);
                 
-                sampleData.forEach((item, index) => {
+                const barHeight = (availableHeight / this.top_n - adjustedBarPadding) * this.barWidth;
+                const barSpacing = availableHeight / this.top_n;
+                
+                // Use actual CSV data for preview - ensure bars fit within recording area
+                const maxBarWidth = Math.max(50, this.previewChartWidthLarge - this.previewMarginLarge.left - this.previewMarginLarge.right - 120); // Extra space for icons and numbers, minimum 50px
+                
+                let previewData = [];
+                if (this.csv_data && this.csv_data.length > 0) {
+                    try {
+                        // Get the data point at 80% through the dataset (matching progress bar and date)
+                        const dataIndex = Math.floor(this.csv_data.length * 0.8);
+                        const currentData = this.csv_data[dataIndex];
+                        if (!currentData) {
+                            throw new Error('No data available');
+                        }
+                        
+                        const dataKeys = Object.keys(currentData).filter(key => key.toLowerCase() !== 'date');
+                        if (dataKeys.length === 0) {
+                            throw new Error('No data columns found');
+                        }
+                        
+                        // Filter out non-numeric values and get max value safely
+                        const numericData = dataKeys.map(key => ({
+                            key: key,
+                            value: parseFloat(currentData[key]) || 0
+                        })).filter(item => !isNaN(item.value));
+                        
+                        if (numericData.length === 0) {
+                            throw new Error('No numeric data found');
+                        }
+                        
+                        const maxValue = Math.max(...numericData.map(item => item.value));
+                        
+                        // Prevent division by zero
+                        const safeMaxValue = maxValue > 0 ? maxValue : 1;
+                        
+                        // Create preview data from actual CSV
+                        previewData = numericData.map(item => {
+                            // Use the same icon logic as the main chart
+                            let iconUrl = null;
+                            try {
+                                if (item.key && typeof item.key === 'string') {
+                                    // Check if there's an icon mapping for this category
+                                    const icons = settings.iconsByCategory || {};
+                                    if (icons[item.key]) {
+                                        iconUrl = icons[item.key];
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn('Error getting icon for category:', item.key, error);
+                            }
+                            
+                            return {
+                                name: item.key,
+                                value: item.value.toString(),
+                                width: Math.max(10, maxBarWidth * (item.value / safeMaxValue)), // Minimum 10px width
+                                iconUrl: iconUrl
+                            };
+                        }).sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).slice(0, this.top_n || 5);
+                    } catch (error) {
+                        console.warn('Error processing CSV data for large preview:', error);
+                        // No fallback data - return empty array on error
+                        previewData = [];
+                    }
+                } else {
+                    // No fallback data - return empty array when no CSV is loaded
+                    previewData = [];
+                }
+                
+                previewData.forEach((item, index) => {
                     if (index >= this.top_n) return;
                     
-                    const y = this.previewMarginLarge.top + (index * barSpacing) + (barSpacing - barHeight) / 2;
+                    // Calculate positions like the main chart
+                    const y = this.previewMarginLarge.top + (index * barSpacing) + adjustedBarPadding / 2;
                     const barEndX = this.previewMarginLarge.left + item.width;
-                    const labelX = this.previewMarginLarge.left + 8; // White text on colored bar
-                    const iconX = barEndX + 8; // Icon to the right of bar
-                    const numberX = iconX + 28; // Number to the right of icon
+                    
+                    // Scale icon and spacing values proportionally
+                    const iconSize = Math.floor(18 * scale); // Same as main chart default
+                    const iconGap = Math.floor(8 * scale); // Same as main chart default
+                    const labelPadding = Math.floor(10 * scale); // Same as main chart default
+                    const numberGap = Math.floor(18 * scale); // Same as main chart default
+                    
+                    const labelX = Math.max(this.previewMarginLarge.left + 4, item.width - labelPadding);
+                    const iconX = this.iconsLeftOfAxis 
+                        ? (this.previewMarginLarge.left - iconGap - iconSize)
+                        : (barEndX + iconGap);
+                    const numberX = this.iconsLeftOfAxis
+                        ? (barEndX + numberGap)
+                        : (barEndX + iconGap + iconSize + numberGap);
                     
                     bars.push({
                         name: item.name,
@@ -905,11 +931,12 @@
                         labelX: labelX,
                         labelY: y + barHeight / 2 + 1,
                         iconX: iconX,
-                        iconY: y + barHeight / 2 - 12,
+                        iconY: y + barHeight / 2 - iconSize / 2,
                         numberX: numberX,
                         numberY: y + barHeight / 2 + 1,
-                        hasIcon: true, // Show icons for all bars
-                        iconUrl: item.iconUrl
+                        hasIcon: !!item.iconUrl, // Show icons only if available
+                        iconUrl: item.iconUrl,
+                        iconSize: iconSize
                     });
                 });
                 
@@ -917,7 +944,7 @@
             }
         },
         watch: {
-            selectedAspectRatio: function(newRatio) {
+            selectedAspectRatio: function(newRatio, oldRatio) {
                 // Apply aspect ratio changes when selection changes
                 // Add a small delay to ensure DOM elements are ready
                 setTimeout(() => {
@@ -925,24 +952,25 @@
                         this.applyAspectRatioToChart();
                         // Apply button positioning based on aspect ratio
                         this.updateButtonPositioning(newRatio);
+                        
+                        // Handle popup window when aspect ratio changes
+                        if (this.isRecordingPopupOpen() && this.recordingPopupAspectRatio !== newRatio) {
+                            // Close the old popup and notify user
+                            this.closeRecordingPopup();
+                            this.obsReady = false;
+                            console.log('Closed recording popup due to aspect ratio change');
+                            alert('Aspect ratio changed. Please click the OBS button again to open a new recording window with the updated dimensions.');
+                        }
                     });
                 }, 100);
             },
             titleFontSize: function(newSize) {
                 // Update recording area when title font size changes
-                setTimeout(() => {
-                    this.$nextTick(() => {
-                        this.applyAspectRatioToChart();
-                    });
-                }, 100);
+                this.autoUpdateChart();
             },
             titleFontFamily: function(newFamily) {
                 // Update recording area when title font family changes
-                setTimeout(() => {
-                    this.$nextTick(() => {
-                        this.applyAspectRatioToChart();
-                    });
-                }, 100);
+                this.autoUpdateChart();
             },
             showChartTitle: function(newValue) {
                 // Update recording area when title visibility changes
@@ -962,9 +990,49 @@
                         this.applyAspectRatioToChart();
                     }, 50);
                 });
+            },
+            // Auto-update chart when settings change
+            title: function() { this.autoUpdateChart(); },
+            duration: function() { this.autoUpdateChart(); },
+            top_n: function() { this.autoUpdateChart(); },
+            showGridlines: function() { this.autoUpdateChart(); },
+            iconsLeftOfAxis: function() { this.autoUpdateChart(); },
+            minBarLength: function() { this.autoUpdateChart(); },
+            rightMargin: function() { this.autoUpdateChart(); },
+            titleTopPadding: function() { this.autoUpdateChart(); },
+            titleColor: function() { this.autoUpdateChart(); },
+            labelFontFamily: function() { this.autoUpdateChart(); },
+            labelFontSize: function() { this.autoUpdateChart(); },
+            labelColor: function() { this.autoUpdateChart(); },
+            valueFontFamily: function() { this.autoUpdateChart(); },
+            valueFontSize: function() { this.autoUpdateChart(); },
+            valueColor: function() { this.autoUpdateChart(); },
+            iconMargin: function() { this.autoUpdateChart(); },
+            numberPosition: function() { this.autoUpdateChart(); },
+            labelPosition: function() { this.autoUpdateChart(); },
+            barWidth: function() { this.autoUpdateChart(); },
+            barColorMode: function() { this.autoUpdateChart(); },
+            selectedPalette: function() { this.autoUpdateChart(); },
+            customColors: {
+                handler: function() { this.autoUpdateChart(); },
+                deep: true
             }
         },
         methods: {
+            // Auto-update chart with debounce
+            autoUpdateChart: function() {
+                var self = this;
+                // Clear existing timeout to debounce rapid changes
+                if (self._autoUpdateTimeout) {
+                    clearTimeout(self._autoUpdateTimeout);
+                }
+                // Debounce: wait 300ms before re-rendering
+                self._autoUpdateTimeout = setTimeout(function() {
+                    if (self.csv_data && self.interval !== null) {
+                        self.applyAspectRatioToChart();
+                    }
+                }, 300);
+            },
             loadExample: function (setting_name) {
                 var self = this;
                 self.duration = settings[setting_name].duration;
@@ -1007,6 +1075,11 @@
                 } else {
                     this.interval.stop()
                 }
+                
+                // Sync with recording popup if open
+                if (this.isRecordingPopupOpen()) {
+                    this.sendPopupCommand('stop');
+                }
             },
             checkForm: function (e) {
                 var self = this;
@@ -1036,8 +1109,11 @@
                                 iconsLeftOfAxis: !!self.iconsLeftOfAxis,
                             labelPadding: self.labelPosition,
                             numberGap: self.numberPosition,
+                            minBarLength: self.minBarLength,
+                            rightMargin: self.rightMargin,
                             showGridlines: !!self.showGridlines,
-                            barWidth: self.barWidth,
+                            dynamicScaling: !!self.dynamicScaling,
+
                             labelTextStyle: {
                                 fontFamily: self.labelFontFamily,
                                 fontSize: self.labelFontSize,
@@ -1048,9 +1124,36 @@
                                 fontSize: self.valueFontSize,
                                 fill: self.valueColor
                             },
-                            colors: self.getBarColors()
+                            colors: self.getBarColors(),
+                            // Callback when chart animation completes
+                            onComplete: function() {
+                                console.log('Chart race completed!');
+                                
+                                // If in recording mode, notify popup wrapper
+                                if (self.isRecordingMode) {
+                                    self.sendToPopupWrapper({ type: 'chart-completed' });
+                                    return;
+                                }
+                                
+                                // Auto-stop OBS recording if it's running
+                                if (self.obsRecording && self.obsConnector && self.obsConnected) {
+                                    console.log('Auto-stopping OBS recording...');
+                                    // Small delay to capture the final frame
+                                    setTimeout(function() {
+                                        self.obsConnector.toggleRecording().catch(function(err) {
+                                            console.error('Failed to auto-stop recording:', err);
+                                        });
+                                    }, 1000);  // 1 second delay to capture final state
+                                }
+                            }
                         }
                     );
+                    
+                    // Sync with recording popup if open
+                    if (self.isRecordingPopupOpen()) {
+                        self.sendConfigToPopup();
+                        self.sendPopupCommand('restart');
+                    }
                 }
 
                 self.errors = [];
@@ -1071,19 +1174,11 @@
                 }
             },
             applySettingsToChart: function() {
-                // Blur the active element to avoid keeping focus inside hidden modal
-                if (document.activeElement && typeof document.activeElement.blur === 'function') {
-                    document.activeElement.blur();
+                // Apply settings directly (no modal)
+                if (this.csv_data) {
+                    // Apply aspect ratio first, then re-render chart
+                    this.applyAspectRatioToChart();
                 }
-                // Defer until modal fully hides, then re-render
-                const self = this;
-                $('#settingsModal').modal('hide');
-                $('#settingsModal').one('hidden.bs.modal', function () {
-                    if (self.csv_data) {
-                        // Apply aspect ratio first, then re-render chart
-                        self.applyAspectRatioToChart();
-                    }
-                });
             },
             addCustomColor: function() {
                 this.customColors.push('#ff6b6b');
@@ -1096,127 +1191,6 @@
                     return this.customColors.length > 0 ? this.customColors : this.availablePalettes.default;
                 } else {
                     return this.availablePalettes[this.selectedPalette];
-                }
-            },
-            // Theme Presets Methods
-            getCurrentSettings: function() {
-                return {
-                    title: this.title,
-                    duration: this.duration,
-                    top_n: this.top_n,
-                    iconsLeftOfAxis: this.iconsLeftOfAxis,
-                    showGridlines: this.showGridlines,
-                    showChartTitle: this.showChartTitle,
-                    titleFontFamily: this.titleFontFamily,
-                    titleFontSize: this.titleFontSize,
-                    titleColor: this.titleColor,
-                    labelFontFamily: this.labelFontFamily,
-                    labelFontSize: this.labelFontSize,
-                    labelColor: this.labelColor,
-                    valueFontFamily: this.valueFontFamily,
-                    valueFontSize: this.valueFontSize,
-                    valueColor: this.valueColor,
-                    iconMargin: this.iconMargin,
-                    numberPosition: this.numberPosition,
-                    labelPosition: this.labelPosition,
-                    barWidth: this.barWidth,
-                    barColorMode: this.barColorMode,
-                    selectedPalette: this.selectedPalette,
-                    customColors: [...this.customColors],
-                    selectedAspectRatio: this.selectedAspectRatio
-                };
-            },
-            applySettings: function(settings) {
-                this.title = settings.title;
-                this.duration = settings.duration;
-                this.top_n = settings.top_n;
-                this.iconsLeftOfAxis = settings.iconsLeftOfAxis;
-                this.showGridlines = settings.showGridlines;
-                this.showChartTitle = settings.showChartTitle;
-                this.titleFontFamily = settings.titleFontFamily;
-                this.titleFontSize = settings.titleFontSize;
-                this.titleColor = settings.titleColor;
-                this.labelFontFamily = settings.labelFontFamily;
-                this.labelFontSize = settings.labelFontSize;
-                this.labelColor = settings.labelColor;
-                this.valueFontFamily = settings.valueFontFamily;
-                this.valueFontSize = settings.valueFontSize;
-                this.valueColor = settings.valueColor;
-                this.iconMargin = settings.iconMargin;
-                this.numberPosition = settings.numberPosition;
-                this.labelPosition = settings.labelPosition;
-                this.barWidth = settings.barWidth;
-                this.barColorMode = settings.barColorMode;
-                this.selectedPalette = settings.selectedPalette;
-                this.customColors = [...settings.customColors];
-                this.selectedAspectRatio = settings.selectedAspectRatio || 'desktop';
-            },
-            savePreset: function() {
-                if (!this.newPresetName.trim()) {
-                    alert('Please enter a preset name');
-                    return;
-                }
-                
-                const settings = this.getCurrentSettings();
-                this.themePresets[this.newPresetName] = settings;
-                this.savePresetsToStorage();
-                this.newPresetName = '';
-                alert('Preset saved successfully!');
-            },
-            loadPreset: function(presetName) {
-                if (this.themePresets[presetName]) {
-                    this.applySettings(this.themePresets[presetName]);
-                    this.currentPresetName = presetName;
-                    alert('Preset loaded successfully!');
-                }
-            },
-            deletePreset: function(presetName) {
-                if (presetName === this.defaultPresetName) {
-                    alert('Cannot delete the default preset');
-                    return;
-                }
-                
-                if (confirm(`Are you sure you want to delete the preset "${presetName}"?`)) {
-                    delete this.themePresets[presetName];
-                    this.savePresetsToStorage();
-                    if (this.currentPresetName === presetName) {
-                        this.currentPresetName = '';
-                    }
-                }
-            },
-            setAsDefault: function(presetName) {
-                if (this.themePresets[presetName]) {
-                    this.defaultPresetName = presetName;
-                    this.savePresetsToStorage();
-                    alert(`"${presetName}" is now the default preset`);
-                }
-            },
-            loadDefaultPreset: function() {
-                if (this.themePresets[this.defaultPresetName]) {
-                    this.applySettings(this.themePresets[this.defaultPresetName]);
-                    this.currentPresetName = this.defaultPresetName;
-                }
-            },
-            savePresetsToStorage: function() {
-                localStorage.setItem('barchartrace_presets', JSON.stringify(this.themePresets));
-                localStorage.setItem('barchartrace_default_preset', this.defaultPresetName);
-            },
-            loadPresetsFromStorage: function() {
-                const savedPresets = localStorage.getItem('barchartrace_presets');
-                const savedDefault = localStorage.getItem('barchartrace_default_preset');
-                
-                if (savedPresets) {
-                    this.themePresets = JSON.parse(savedPresets);
-                }
-                
-                if (savedDefault) {
-                    this.defaultPresetName = savedDefault;
-                }
-                
-                // Create default preset if none exists
-                if (!this.themePresets[this.defaultPresetName]) {
-                    this.themePresets[this.defaultPresetName] = this.getCurrentSettings();
-                    this.savePresetsToStorage();
                 }
             },
             // Aspect Ratio Methods
@@ -1415,7 +1389,7 @@
                     flex-direction: column;
                     align-items: center;
                     justify-content: flex-start;
-                    padding: 20px 0 0 20px;
+                    padding: ${this.titleTopPadding}px 0 0 20px;
                 `;
                 
                 // Insert wrapper before chart div
@@ -1532,29 +1506,30 @@
             },
             // Large preview styling methods
             getPreviewWrapperStyleLarge: function() {
+                // Use the selected aspect ratio from main page
                 const aspectRatio = this.getCurrentAspectRatio();
-                const maxWidth = 520; // Increased to accommodate larger chart
-                const maxHeight = 450; // Increased to accommodate larger chart
+                const scale = 0.9; // Maximum scale factor to use all available space
                 
+                // Calculate dimensions based on selected aspect ratio
                 let width, height;
                 if (aspectRatio.ratio > 1) {
-                    // Landscape
-                    width = Math.min(maxWidth, maxHeight * aspectRatio.ratio);
-                    height = width / aspectRatio.ratio;
+                    // Landscape - use width as base
+                    width = Math.floor(800 * scale); // Base width scaled
+                    height = Math.floor(width / aspectRatio.ratio);
                 } else {
-                    // Portrait
-                    height = Math.min(maxHeight, maxWidth / aspectRatio.ratio);
-                    width = height * aspectRatio.ratio;
+                    // Portrait - use height as base
+                    height = Math.floor(600 * scale); // Base height scaled
+                    width = Math.floor(height * aspectRatio.ratio);
                 }
                 
                 return {
                     width: width + 'px',
                     height: height + 'px',
-                    margin: '0 auto',
+                    margin: '20px auto 0 auto',
                     position: 'relative',
                     border: '3px dashed #ff6b6b',
                     borderRadius: '12px',
-                    padding: '8px',
+                    padding: '2px', // Reduced padding to maximize content area
                     backgroundColor: '#f8f9fa',
                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
                 };
@@ -1562,15 +1537,18 @@
             getPreviewChartStyleLarge: function() {
                 return {
                     width: '100%',
-                    height: 'auto',
-                    marginBottom: '15px'
+                    height: '100%', // Changed from 'auto' to '100%' to fill container
+                    marginBottom: '0px', // Reduced margin to prevent overflow
+                    overflow: 'hidden' // Ensure content doesn't overflow
                 };
             },
             getPreviewTimelineStyleLarge: function() {
+                const scale = 0.9; // Same scale as wrapper
+                const timelineHeight = Math.floor(30 * scale); // Reduced from 50 to eliminate blank space
                 return {
                     width: '100%',
-                    height: '80px',
-                    marginTop: '15px'
+                    height: timelineHeight + 'px',
+                    marginTop: Math.floor(4 * scale) + 'px' // Further reduced margin to prevent overflow
                 };
             },
             getPreviewRecordingBorderStyleLarge: function() {
@@ -1586,10 +1564,868 @@
                     zIndex: '10',
                     animation: 'pulse-preview-large 2s ease-in-out infinite'
                 };
+            },
+            // Preview timeline methods
+            getPreviewTimelineYears: function() {
+                if (!this.csv_data || this.csv_data.length === 0) {
+                    return [];
+                }
+                
+                try {
+                    // Get the date range from the actual data
+                    const dates = this.csv_data.map(row => row.date || row.Date);
+                    const startDate = new Date(dates[0]);
+                    const endDate = new Date(dates[dates.length - 1]);
+                    
+                    // Generate 6 evenly spaced years
+                    const yearRange = endDate.getFullYear() - startDate.getFullYear();
+                    const yearStep = Math.max(1, Math.floor(yearRange / 5));
+                    
+                    const years = [];
+                    for (let i = 0; i < 6; i++) {
+                        const year = startDate.getFullYear() + (i * yearStep);
+                        years.push(year.toString());
+                    }
+                    
+                    return years;
+                } catch (error) {
+                    console.warn('Error generating timeline years:', error);
+                    return [];
+                }
+            },
+            getPreviewProgressWidth: function() {
+                if (!this.csv_data || this.csv_data.length === 0) {
+                    return 0;
+                }
+                
+                try {
+                    // Calculate progress based on actual date range
+                    const dates = this.csv_data.map(row => row.date || row.Date);
+                    const startDate = new Date(dates[0]);
+                    const endDate = new Date(dates[dates.length - 1]);
+                    const currentDate = new Date(dates[Math.floor(dates.length * 0.8)]); // Show 80% through the timeline
+                    
+                    const totalTimeSpan = endDate.getTime() - startDate.getTime();
+                    const currentTimeSpan = currentDate.getTime() - startDate.getTime();
+                    const progressRatio = totalTimeSpan > 0 ? currentTimeSpan / totalTimeSpan : 0.8;
+                    
+                    const timelineWidth = this.previewChartWidthLarge - this.previewMarginLarge.left - this.previewMarginLarge.right;
+                    return timelineWidth * progressRatio;
+                } catch (error) {
+                    console.warn('Error calculating progress width:', error);
+                    return 0;
+                }
+            },
+            getPreviewCurrentDate: function() {
+                if (!this.csv_data || this.csv_data.length === 0) {
+                    return '';
+                }
+                
+                try {
+                    // Get the date at 80% through the data (matching progress bar)
+                    const dataIndex = Math.floor(this.csv_data.length * 0.8);
+                    const currentData = this.csv_data[dataIndex];
+                    const dateStr = currentData.date || currentData.Date;
+                    const date = new Date(dateStr);
+                    
+                    // Format the date like the main chart
+                    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                                  'July', 'August', 'September', 'October', 'November', 'December'];
+                    const month = months[date.getMonth()];
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const year = date.getFullYear();
+                    
+                    return `${month} ${day}, ${year}`;
+                } catch (error) {
+                    console.warn('Error formatting current date:', error);
+                    return '';
+                }
+            },
+            // Get actual chart dimensions from the main chart
+            getActualChartDimensions: function() {
+                const chartDiv = document.getElementById("chartDiv");
+                if (!chartDiv) {
+                    return { width: 600, height: 400 }; // fallback
+                }
+                
+                // Get actual dimensions like the main chart does
+                const actualWidth = chartDiv.clientWidth;
+                const actualHeight = chartDiv.clientHeight - 50; // Same as main chart
+                
+                return { width: actualWidth, height: actualHeight };
+            },
+            
+            // Calculate preview scale factor
+            getPreviewScale: function() {
+                const actual = this.getActualChartDimensions();
+                const maxPreviewWidth = 600;
+                const maxPreviewHeight = 400;
+                
+                // Scale down proportionally to fit in preview
+                const scaleX = maxPreviewWidth / actual.width;
+                const scaleY = maxPreviewHeight / actual.height;
+                const scale = Math.min(scaleX, scaleY); // Use smaller scale to fit both dimensions
+                
+                return scale;
+            },
+            
+            // ==================== OBS Integration Methods ====================
+            
+            /**
+             * Toggle the OBS settings panel visibility
+             */
+            toggleOBSPanel: function() {
+                this.showOBSPanel = !this.showOBSPanel;
+            },
+            
+            /**
+             * Connect or disconnect from OBS WebSocket
+             */
+            toggleOBSConnection: async function() {
+                if (this.obsConnected) {
+                    // Disconnect
+                    this.disconnectOBS();
+                } else {
+                    // Connect
+                    await this.connectToOBS();
+                }
+            },
+            
+            /**
+             * Connect to OBS WebSocket server
+             */
+            connectToOBS: async function() {
+                if (this.obsConnecting) return;
+                
+                this.obsConnecting = true;
+                this.obsError = null;
+                
+                try {
+                    // Create new OBSConnector if not exists
+                    if (!this.obsConnector) {
+                        this.obsConnector = new OBSConnector();
+                    }
+                    
+                    // Set up callbacks
+                    this.obsConnector.onConnected = () => {
+                        console.log('OBS: Connected and identified');
+                        this.obsConnected = true;
+                        this.obsConnecting = false;
+                        this.obsError = null;
+                        // Update recording area info on connect
+                        this.updateRecordingAreaInfo();
+                    };
+                    
+                    this.obsConnector.onDisconnected = () => {
+                        console.log('OBS: Disconnected');
+                        this.obsConnected = false;
+                        this.obsRecording = false;
+                        this.stopRecordingTimer();
+                    };
+                    
+                    this.obsConnector.onError = (error) => {
+                        console.error('OBS: Error', error);
+                        this.obsError = 'Connection error. Make sure OBS is running with WebSocket enabled.';
+                        this.obsConnecting = false;
+                    };
+                    
+                    this.obsConnector.onRecordStateChanged = (eventData) => {
+                        console.log('OBS: Recording state changed', eventData);
+                        const isRecording = eventData.outputActive;
+                        this.obsRecording = isRecording;
+                        
+                        if (isRecording) {
+                            this.startRecordingTimer();
+                        } else {
+                            this.stopRecordingTimer();
+                        }
+                    };
+                    
+                    // Connect to OBS
+                    await this.obsConnector.connect(this.obsUrl, this.obsPassword);
+                    
+                    // Get initial recording status
+                    try {
+                        const status = await this.obsConnector.getRecordStatus();
+                        this.obsRecording = status.outputActive;
+                        if (this.obsRecording) {
+                            this.startRecordingTimer();
+                        }
+                    } catch (e) {
+                        console.warn('Could not get initial recording status:', e);
+                    }
+                    
+                } catch (error) {
+                    console.error('OBS: Failed to connect', error);
+                    this.obsError = error.message || 'Failed to connect to OBS';
+                    this.obsConnecting = false;
+                }
+            },
+            
+            /**
+             * Disconnect from OBS WebSocket
+             */
+            disconnectOBS: function() {
+                if (this.obsConnector) {
+                    this.obsConnector.disconnect();
+                }
+                this.obsConnected = false;
+                this.obsRecording = false;
+                this.stopRecordingTimer();
+            },
+            
+            /**
+             * Toggle OBS recording on/off
+             */
+            toggleOBSRecording: async function() {
+                if (!this.obsConnector || !this.obsConnected) {
+                    console.warn('OBS not connected');
+                    return;
+                }
+                
+                try {
+                    // If we're about to START recording, restart the chart first
+                    if (!this.obsRecording) {
+                        console.log('Starting recording - restarting chart first...');
+                        
+                        // Small delay to let the chart restart before recording starts
+                        // This ensures the recording captures from the beginning
+                        this.checkForm();  // Restart chart on main page
+                        
+                        // Also restart the popup if it's open
+                        if (this.isRecordingPopupOpen()) {
+                            this.sendPopupCommand('restart');
+                        }
+                        
+                        // Wait a moment for the chart to initialize before starting recording
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    
+                    await this.obsConnector.toggleRecording();
+                } catch (error) {
+                    console.error('OBS: Failed to toggle recording', error);
+                    this.obsError = 'Failed to toggle recording: ' + error.message;
+                }
+            },
+            
+            /**
+             * Start the recording timer
+             */
+            startRecordingTimer: function() {
+                this.obsRecordingStartTime = Date.now();
+                this.obsRecordingTime = '00:00';
+                
+                // Clear existing timer
+                this.stopRecordingTimer();
+                
+                // Update timer every second
+                this.obsRecordingTimer = setInterval(() => {
+                    const elapsed = Date.now() - this.obsRecordingStartTime;
+                    const seconds = Math.floor(elapsed / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const displaySeconds = seconds % 60;
+                    this.obsRecordingTime = 
+                        String(minutes).padStart(2, '0') + ':' + 
+                        String(displaySeconds).padStart(2, '0');
+                }, 1000);
+            },
+            
+            /**
+             * Stop the recording timer
+             */
+            stopRecordingTimer: function() {
+                if (this.obsRecordingTimer) {
+                    clearInterval(this.obsRecordingTimer);
+                    this.obsRecordingTimer = null;
+                }
+                this.obsRecordingTime = '00:00';
+            },
+            
+            // ============================================
+            // Recording Popup Window Management
+            // ============================================
+            
+            /**
+             * Open the recording popup window
+             */
+            openRecordingPopup: function() {
+                const aspectRatio = this.getCurrentAspectRatio();
+                const targetWidth = aspectRatio.width;
+                const targetHeight = aspectRatio.height;
+                
+                // Close existing popup if open
+                if (this.recordingPopup && !this.recordingPopup.closed) {
+                    this.recordingPopup.close();
+                }
+                
+                // Add extra space for browser chrome (title bar, borders)
+                // Chrome typically adds ~80px for title bar + address bar, ~16px for borders
+                const chromeHeight = 100;  // Extra height for window chrome
+                const chromeWidth = 16;    // Extra width for window borders
+                
+                const windowWidth = targetWidth + chromeWidth;
+                const windowHeight = targetHeight + chromeHeight;
+                
+                // Calculate screen center position
+                const left = Math.max(0, (screen.width - windowWidth) / 2);
+                const top = Math.max(0, (screen.height - windowHeight) / 2);
+                
+                // Open popup with extra dimensions to account for browser chrome
+                // The popup will resize itself to achieve correct inner dimensions
+                const features = [
+                    `width=${windowWidth}`,
+                    `height=${windowHeight}`,
+                    `left=${left}`,
+                    `top=${top}`,
+                    'menubar=no',
+                    'toolbar=no',
+                    'location=no',
+                    'status=no',
+                    'scrollbars=no',
+                    'resizable=yes'  // Allow resizing so popup can adjust itself
+                ].join(',');
+                
+                console.log('Opening recording popup. Target inner:', targetWidth, 'x', targetHeight);
+                console.log('Initial outer size:', windowWidth, 'x', windowHeight);
+                
+                this.recordingPopup = window.open('recording-view.html', 'BarChartRecording', features);
+                this.recordingPopupAspectRatio = this.selectedAspectRatio;
+                this.recordingPopupReady = false;
+                
+                if (!this.recordingPopup) {
+                    console.error('Failed to open popup - may be blocked by browser');
+                    alert('Popup was blocked. Please allow popups for this site and try again.');
+                    return false;
+                }
+                
+                return true;
+            },
+            
+            /**
+             * Close the recording popup window
+             */
+            closeRecordingPopup: function() {
+                if (this.recordingPopup && !this.recordingPopup.closed) {
+                    this.recordingPopup.close();
+                }
+                this.recordingPopup = null;
+                this.recordingPopupReady = false;
+                this.recordingPopupAspectRatio = null;
+            },
+            
+            /**
+             * Check if recording popup is open and valid
+             */
+            isRecordingPopupOpen: function() {
+                return this.recordingPopup && !this.recordingPopup.closed;
+            },
+            
+            /**
+             * Get recording configuration to send to popup
+             */
+            getRecordingConfig: function() {
+                return {
+                    // Data
+                    csvData: this.csv_data,
+                    
+                    // Chart settings
+                    top_n: this.top_n,
+                    duration: this.duration,
+                    
+                    // Title settings
+                    title: this.title,
+                    showChartTitle: this.showChartTitle,
+                    titleFontFamily: this.titleFontFamily,
+                    titleFontSize: this.titleFontSize,
+                    titleColor: this.titleColor,
+                    titleTopPadding: this.titleTopPadding,
+                    
+                    // Label settings
+                    labelFontFamily: this.labelFontFamily,
+                    labelFontSize: this.labelFontSize,
+                    labelColor: this.labelColor,
+                    labelPosition: this.labelPosition,
+                    
+                    // Value settings
+                    valueFontFamily: this.valueFontFamily,
+                    valueFontSize: this.valueFontSize,
+                    valueColor: this.valueColor,
+                    numberPosition: this.numberPosition,
+                    
+                    // Icon settings
+                    icons: settings.iconsByCategory || {},
+                    iconMargin: this.iconMargin,
+                    iconsLeftOfAxis: this.iconsLeftOfAxis,
+                    
+                    // Display settings
+                    showGridlines: this.showGridlines,
+                    dynamicScaling: this.dynamicScaling,
+                    minBarLength: this.minBarLength,
+                    rightMargin: this.rightMargin,
+                    colors: this.getBarColors(),
+                    backgroundColor: 'white',
+                    
+                    // Aspect ratio info
+                    aspectRatio: this.getCurrentAspectRatio()
+                };
+            },
+            
+            /**
+             * Send configuration to recording popup
+             */
+            sendConfigToPopup: function() {
+                if (!this.isRecordingPopupOpen()) {
+                    console.warn('Recording popup not open');
+                    return;
+                }
+                
+                const config = this.getRecordingConfig();
+                this.recordingPopup.postMessage({
+                    type: 'init',
+                    config: config
+                }, '*');
+                
+                console.log('Sent config to recording popup');
+            },
+            
+            /**
+             * Send command to recording popup
+             */
+            sendPopupCommand: function(command, data = {}) {
+                if (!this.isRecordingPopupOpen()) {
+                    console.warn('Recording popup not open');
+                    return;
+                }
+                
+                this.recordingPopup.postMessage({
+                    type: command,
+                    ...data
+                }, '*');
+            },
+            
+            /**
+             * Handle messages from recording popup
+             */
+            handlePopupMessage: function(event) {
+                const data = event.data;
+                if (!data || !data.type) return;
+                
+                switch (data.type) {
+                    case 'request-config':
+                        console.log('Popup requested config');
+                        this.sendConfigToPopup();
+                        break;
+                        
+                    case 'ready':
+                        console.log('Popup is ready:', data);
+                        this.recordingPopupReady = true;
+                        break;
+                        
+                    case 'popup-closed':
+                        console.log('Popup was closed');
+                        this.recordingPopup = null;
+                        this.recordingPopupReady = false;
+                        break;
+                        
+                    case 'chart-completed':
+                        console.log('Popup chart completed!');
+                        // Auto-stop OBS recording if it's running
+                        if (this.obsRecording && this.obsConnector && this.obsConnected) {
+                            console.log('Auto-stopping OBS recording from popup completion...');
+                            // Small delay to capture the final frame
+                            var self = this;
+                            setTimeout(function() {
+                                self.obsConnector.toggleRecording().catch(function(err) {
+                                    console.error('Failed to auto-stop recording:', err);
+                                });
+                            }, 1000);  // 1 second delay to capture final state
+                        }
+                        break;
+                }
+            },
+            
+            /**
+             * Update recording area information from the chart
+             */
+            updateRecordingAreaInfo: function() {
+                const wrapper = document.querySelector('.recording-wrapper');
+                const chartDiv = document.getElementById('chartDiv');
+                
+                if (wrapper) {
+                    const rect = wrapper.getBoundingClientRect();
+                    // Use viewport-relative coordinates (no scroll offsets)
+                    // OBS captures the viewport, not the entire scrollable document
+                    this.recordingAreaInfo = {
+                        x: Math.round(rect.left),
+                        y: Math.round(rect.top),
+                        width: Math.round(rect.width),
+                        height: Math.round(rect.height)
+                    };
+                } else if (chartDiv) {
+                    const rect = chartDiv.getBoundingClientRect();
+                    // Use viewport-relative coordinates (no scroll offsets)
+                    this.recordingAreaInfo = {
+                        x: Math.round(rect.left),
+                        y: Math.round(rect.top),
+                        width: Math.round(rect.width),
+                        height: Math.round(rect.height)
+                    };
+                }
+                
+                console.log('Recording area info (viewport-relative):', this.recordingAreaInfo);
+            },
+            
+            /**
+             * Setup OBS capture for the bar chart area using popup window
+             */
+            setupOBSCapture: async function() {
+                if (!this.obsConnector || !this.obsConnected) {
+                    console.warn('OBS not connected');
+                    return;
+                }
+                
+                this.obsSettingUp = true;
+                this.obsSetupResult = null;
+                
+                try {
+                    // Step 1: Open recording popup if not already open
+                    if (!this.isRecordingPopupOpen()) {
+                        console.log('Opening recording popup...');
+                        if (!this.openRecordingPopup()) {
+                            throw new Error('Failed to open recording popup. Please allow popups for this site.');
+                        }
+                        
+                        // Wait for popup to load
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                    
+                    // Step 2: Send config to popup
+                    this.sendConfigToPopup();
+                    
+                    // Wait a bit for popup to render
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Step 3: Get aspect ratio dimensions for OBS
+                    const aspectRatio = this.getCurrentAspectRatio();
+                    const targetWidth = aspectRatio.width;
+                    const targetHeight = aspectRatio.height;
+                    
+                    console.log('Setting up OBS capture for popup with dimensions:', targetWidth, 'x', targetHeight);
+                    
+                    // Step 4: Configure OBS to capture the popup window
+                    // The popup window title is "Bar Chart Recording"
+                    const result = await this.obsConnector.setupBarChartCapture({
+                        sceneName: this.obsSceneName || 'Bar Chart Race Recording',
+                        inputName: 'Bar Chart Capture',
+                        windowTitle: 'Bar Chart Recording',  // This matches the popup's <title>
+                        
+                        // Target dimensions - OBS will crop to these exact dimensions
+                        targetWidth: targetWidth,
+                        targetHeight: targetHeight
+                    });
+                    
+                    if (result.success) {
+                        this.obsSetupResult = {
+                            success: true,
+                            message: `Scene "${result.sceneName}" created! Recording popup is ready.`
+                        };
+                        this.obsReady = true;
+                    } else {
+                        this.obsSetupResult = {
+                            success: false,
+                            message: result.errors.join(', ') || 'Setup failed'
+                        };
+                        this.obsReady = false;
+                    }
+                    
+                } catch (error) {
+                    console.error('OBS: Setup failed', error);
+                    this.obsSetupResult = {
+                        success: false,
+                        message: error.message || 'Setup failed'
+                    };
+                    this.obsReady = false;
+                } finally {
+                    this.obsSettingUp = false;
+                }
+            },
+            
+            /**
+             * Auto-connect to OBS and setup capture in one click
+             */
+            autoConnectAndSetupOBS: async function() {
+                // If already ready, disconnect instead
+                if (this.obsReady) {
+                    this.disconnectOBS();
+                    this.obsReady = false;
+                    return;
+                }
+                
+                // If already connecting or setting up, do nothing
+                if (this.obsConnecting || this.obsSettingUp) {
+                    return;
+                }
+                
+                try {
+                    // Step 1: Connect to OBS
+                    if (!this.obsConnected) {
+                        await this.connectToOBS();
+                        
+                        // Wait a moment for connection to stabilize
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        if (!this.obsConnected) {
+                            console.error('OBS: Failed to connect');
+                            return;
+                        }
+                    }
+                    
+                    // Step 2: Setup OBS capture
+                    await this.setupOBSCapture();
+                    
+                } catch (error) {
+                    console.error('OBS: Auto-setup failed', error);
+                    this.obsError = error.message || 'Auto-setup failed';
+                }
+            },
+            
+            // ==================== Recording Mode Methods ====================
+            // These are used when index.html is loaded inside the popup iframe
+            // to render the chart using the SAME code as the main page
+            
+            /**
+             * Initialize recording mode - hide UI and listen for config from popup wrapper
+             */
+            initRecordingMode: function() {
+                var self = this;
+                console.log('Initializing recording mode...');
+                
+                // Hide all UI elements except the chart
+                this.hideUIForRecording();
+                
+                // Listen for messages from the popup wrapper (recording-view.html)
+                this.recordingModeMessageHandler = function(event) {
+                    self.handleRecordingModeMessage(event);
+                };
+                window.addEventListener('message', this.recordingModeMessageHandler);
+                
+                // Notify popup wrapper that iframe is ready
+                this.sendToPopupWrapper({ type: 'iframe-ready' });
+            },
+            
+            /**
+             * Hide all UI elements for recording mode
+             */
+            hideUIForRecording: function() {
+                // Add recording mode class to body for CSS hiding
+                document.body.classList.add('recording-mode');
+                
+                // Apply inline styles to ensure elements are hidden
+                var style = document.createElement('style');
+                style.id = 'recording-mode-styles';
+                style.textContent = `
+                /* FORCE NO SCROLLBARS AND FULL SIZE */
+                html.recording-mode,
+                body.recording-mode {
+                    overflow: hidden !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                
+                .recording-mode #main-title,
+                    .recording-mode .card-header,
+                    .recording-mode .github-corner,
+                    .recording-mode .chart-controls,
+                    .recording-mode .modal,
+                    .recording-mode .recording-visualization {
+                        display: none !important;
+                    }
+                    .recording-mode .main-content {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+                    .recording-mode .container-fluid {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: 100% !important;
+                    }
+                    .recording-mode .section {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+                    .recording-mode #chart-card {
+                        border: none !important;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    .recording-mode #chart-card .card-body {
+                        padding: 0 !important;
+                    }
+                    .recording-mode .recording-wrapper {
+                        margin: 0 !important;
+                        border: none !important;
+                        /* Shift content up to show timeline at bottom */
+                        margin-top: -20px !important;
+                        /* Remove top padding */
+                        padding-top: 0 !important;
+                    }
+                    /* Hide all cards EXCEPT the chart card */
+                    .recording-mode .card:not(#chart-card) {
+                        display: none !important;
+                    }
+                    .recording-mode hr {
+                        display: none !important;
+                    }
+                    /* HIDE ELEMENTS FOR CLEAN RECORDING */
+                    .recording-mode .aspect-ratio-controls-left {
+                        display: none !important;
+                    }
+                    .recording-mode .aspect-ratio-visualization {
+                        display: none !important;
+                    }
+                    .recording-mode .aspect-ratio-visualization::before {
+                        display: none !important;
+                    }
+                    .recording-mode .aspect-ratio-visualization::after {
+                        display: none !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            },
+            
+            /**
+             * Handle messages from popup wrapper (recording-view.html)
+             */
+            handleRecordingModeMessage: function(event) {
+                var self = this;
+                var data = event.data;
+                if (!data || !data.type) return;
+                
+                console.log('Recording mode received message:', data.type);
+                
+                switch (data.type) {
+                    case 'init':
+                        this.handleRecordingInit(data.config);
+                        break;
+                        
+                    case 'play':
+                        this.checkForm();
+                        break;
+                        
+                    case 'pause':
+                    case 'stop':
+                        this.stopRace();
+                        break;
+                        
+                    case 'restart':
+                        this.stopRace();
+                        this.$nextTick(function() {
+                            self.checkForm();
+                        });
+                        break;
+                }
+            },
+            
+            /**
+             * Initialize chart with config received from popup wrapper
+             */
+            handleRecordingInit: function(config) {
+                var self = this;
+                console.log('Recording mode: Initializing with config', config);
+                
+                // Apply all config values to Vue data
+                if (config.csvData) this.csv_data = config.csvData;
+                if (config.top_n) this.top_n = config.top_n;
+                if (config.duration) this.duration = config.duration;
+                if (config.title) this.title = config.title;
+                if (config.showChartTitle !== undefined) this.showChartTitle = config.showChartTitle;
+                if (config.titleFontFamily) this.titleFontFamily = config.titleFontFamily;
+                if (config.titleFontSize) this.titleFontSize = config.titleFontSize;
+                if (config.titleColor) this.titleColor = config.titleColor;
+                if (config.titleTopPadding) this.titleTopPadding = config.titleTopPadding;
+                if (config.labelFontFamily) this.labelFontFamily = config.labelFontFamily;
+                if (config.labelFontSize) this.labelFontSize = config.labelFontSize;
+                if (config.labelColor) this.labelColor = config.labelColor;
+                if (config.labelPosition) this.labelPosition = config.labelPosition;
+                if (config.valueFontFamily) this.valueFontFamily = config.valueFontFamily;
+                if (config.valueFontSize) this.valueFontSize = config.valueFontSize;
+                if (config.valueColor) this.valueColor = config.valueColor;
+                if (config.numberPosition) this.numberPosition = config.numberPosition;
+                if (config.iconMargin) this.iconMargin = config.iconMargin;
+                if (config.iconsLeftOfAxis !== undefined) this.iconsLeftOfAxis = config.iconsLeftOfAxis;
+                if (config.showGridlines !== undefined) this.showGridlines = config.showGridlines;
+                if (config.dynamicScaling !== undefined) this.dynamicScaling = config.dynamicScaling;
+                if (config.minBarLength !== undefined) this.minBarLength = config.minBarLength;
+                if (config.rightMargin !== undefined) this.rightMargin = config.rightMargin;
+                if (config.colors) {
+                    this.barColorMode = 'custom';
+                    this.customColors = config.colors;
+                }
+                
+                // Apply aspect ratio
+                if (config.aspectRatio) {
+                    // Find matching aspect ratio or use the dimensions directly
+                    if (config.aspectRatio.width === 1280 && config.aspectRatio.height === 720) {
+                        this.selectedAspectRatio = 'desktop';
+                    } else if (config.aspectRatio.width === 1080 && config.aspectRatio.height === 1920) {
+                        this.selectedAspectRatio = 'mobile';
+                    }
+                }
+                
+                // Set the icon mappings in settings
+                if (config.icons) {
+                    settings.iconsByCategory = config.icons;
+                }
+                
+                // Wait for Vue to update, then apply aspect ratio and start chart
+                this.$nextTick(function() {
+                    // Apply aspect ratio for proper sizing
+                    self.applyAspectRatioToChart();
+                    
+                    // Small delay to ensure DOM is ready
+                    setTimeout(function() {
+                        // Start the chart animation
+                        self.checkForm();
+                        
+                        // Notify popup wrapper that we're ready
+                        self.sendToPopupWrapper({ 
+                            type: 'ready',
+                            width: window.innerWidth,
+                            height: window.innerHeight
+                        });
+                    }, 100);
+                });
+            },
+            
+            /**
+             * Send message to popup wrapper (recording-view.html)
+             */
+            sendToPopupWrapper: function(message) {
+                if (window.parent && window.parent !== window) {
+                    try {
+                        window.parent.postMessage(message, '*');
+                    } catch (e) {
+                        console.warn('Could not send message to popup wrapper:', e);
+                    }
+                }
             }
         },
         mounted: function() {
-            this.loadPresetsFromStorage();
+            var self = this;
+            
+            // Check if we're in recording mode (loaded inside popup iframe)
+            const urlParams = new URLSearchParams(window.location.search);
+            this.isRecordingMode = urlParams.get('mode') === 'recording';
+            
+            if (this.isRecordingMode) {
+                console.log('Running in RECORDING MODE (inside popup iframe)');
+                this.initRecordingMode();
+                return; // Skip normal initialization
+            }
+            
+            // Normal mode initialization
             // Initialize aspect ratio visualization
             this.$nextTick(() => {
                 this.applyAspectRatioToChart();
@@ -1601,16 +2437,44 @@
             this.resizeHandler = () => {
                 this.$nextTick(() => {
                     this.applyAspectRatioToChart();
+                    // Update recording area info on resize
+                    if (this.obsConnected) {
+                        this.updateRecordingAreaInfo();
+                    }
                 });
             };
             window.addEventListener('resize', this.resizeHandler);
             
+            // Listen for messages from recording popup
+            this.popupMessageHandler = (event) => {
+                this.handlePopupMessage(event);
+            };
+            window.addEventListener('message', this.popupMessageHandler);
+            
+            // Initialize OBS connector
+            this.obsConnector = new OBSConnector();
         },
         beforeDestroy: function() {
             // Clean up resize listener
             if (this.resizeHandler) {
                 window.removeEventListener('resize', this.resizeHandler);
             }
+            
+            // Clean up popup message listener
+            if (this.popupMessageHandler) {
+                window.removeEventListener('message', this.popupMessageHandler);
+            }
+            
+            // Close recording popup
+            this.closeRecordingPopup();
+            
+            // Disconnect from OBS
+            if (this.obsConnector) {
+                this.obsConnector.disconnect();
+            }
+            
+            // Stop recording timer
+            this.stopRecordingTimer();
         },
         delimiters: ["((", "))"]
 
@@ -1663,8 +2527,60 @@
         // optional: example icons for StackOverflow languages
         // provide full URLs or relative paths to icons you add under css/ or a new images/ folder
         "iconsByCategory": {
+            "Paris": "images/flags/FR.svg",
+            "Hangzhou": "images/flags/CN.svg",
+            "Mexico City": "images/flags/MX.svg",
+            "Philadelphia": "images/flags/US.svg",
+            "Fez": "images/flags/MA.svg",
+            "Karachi": "images/flags/PK.svg",
+            "Pegu": "images/flags/MM.svg",
+            "Saint Petersburg": "images/flags/RU.svg",
+            "Agra": "images/flags/IN.svg",
+            "Boston": "images/flags/US.svg",
+            "Seoul": "images/flags/KR.svg",
+            "Lisbon": "images/flags/PT.svg",
+            "Bijapur": "images/flags/IN.svg",
+            "Lucknow": "images/flags/IN.svg",
+            "Istanbul": "images/flags/TR.svg",
+            "Osaka": "images/flags/JP.svg",
+            "Mumbai": "images/flags/IN.svg",
+            "Sao Paulo": "images/flags/BR.svg",
+            "Tabriz": "images/flags/IR.svg",
+            "Suzhou": "images/flags/CN.svg",
+            "Los Angeles": "images/flags/US.svg",
+            "Guangzhou": "images/flags/CN.svg",
+            "Ahmedabad": "images/flags/IN.svg",
+            "Chicago": "images/flags/US.svg",
+            "Nanjing": "images/flags/CN.svg",
+            "Vienna": "images/flags/AT.svg",
+            "Kyoto": "images/flags/JP.svg",
+            "Cairo": "images/flags/EG.svg",
+            "Beijing": "images/flags/CN.svg",
+            "Vijayanagar": "images/flags/IN.svg",
+            "Delhi": "images/flags/IN.svg",
+            "Buenos Aires": "images/flags/AR.svg",
+            "Rio de Janeiro": "images/flags/BR.svg",
+            "Tokyo": "images/flags/JP.svg",
+            "Edirne": "images/flags/TR.svg",
+            "Berlin": "images/flags/DE.svg",
+            "Gauda": "images/flags/IN.svg",
+            "Moscow": "images/flags/RU.svg",
+            "Birmingham": "images/flags/GB.svg",
+            "Venice": "images/flags/IT.svg",
+            "Cuttack": "images/flags/IN.svg",
+            "London": "images/flags/GB.svg",
+            "Kolkatta": "images/flags/IN.svg",
+            "Manchester": "images/flags/GB.svg",
+            "Esfahan": "images/flags/IR.svg",
+            "Shanghai": "images/flags/CN.svg",
+            "Dhaka": "images/flags/BD.svg",
+            "Naples": "images/flags/IT.svg",
+            "Mashhad": "images/flags/IR.svg",
+            "New York": "images/flags/US.svg",
+            "Ayutthaya": "images/flags/TH.svg",
+            "Amsterdam": "images/flags/NL.svg",
             "python": "images/python.png",
-            "c-sharp": "images/csharp.png",
+            "c#": "images/csharp.png",
             "c": "https://static.vecteezy.com/system/resources/previews/048/332/147/non_2x/c-programming-icon-free-png.png",
             "javascript": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/javascript.svg",
             "java": "images/java.png",
