@@ -322,6 +322,7 @@
                     <span>Inside Bar</span>
                     <span>Outside Bar</span>
                   </div>
+                  <small class="form-text text-muted">Current: (( labelPosition ))px</small>
                 </div>
 
                 <div class="control-group">
@@ -333,6 +334,7 @@
                     <span>Close</span>
                     <span>Far</span>
                   </div>
+                  <small class="form-text text-muted">Current: (( iconMargin ))px</small>
                 </div>
 
                 <div class="control-group">
@@ -344,6 +346,7 @@
                     <span>Close</span>
                     <span>Far</span>
                   </div>
+                  <small class="form-text text-muted">Current: (( numberPosition ))px</small>
                 </div>
 
                 <div class="control-group">
@@ -360,14 +363,14 @@
 
                 <div class="control-group">
                   <label class="control-label">
-                    <i class="fas fa-arrows-alt-h"></i> Right Margin
+                    <i class="fas fa-arrows-alt-h"></i> Bar Area Right Margin
                   </label>
                   <input id="s_right_margin_main" v-model.number="rightMargin" class="form-control-range" type="range" min="100" max="500" step="10">
                   <div class="range-labels">
                     <span>100px</span>
                     <span>500px</span>
                   </div>
-                  <small class="form-text text-muted">Current: (( rightMargin ))px - Space for value labels</small>
+                  <small class="form-text text-muted">Current: (( rightMargin ))px - Space from longest bar to right edge</small>
                 </div>
 
               </div>
@@ -396,6 +399,7 @@
                 <table class="table table-sm table-bordered mb-2">
                   <thead class="thead-light">
                     <tr>
+                      <th style="width: 30px;"></th>
                       <th style="width: 85px;">Year</th>
                       <th>Text</th>
                       <th style="width: 80px;">Image</th>
@@ -403,9 +407,20 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(fact, index) in facts" :key="index">
+                    <tr v-for="(fact, index) in facts" :key="index"
+                        draggable="true"
+                        @dragstart="handleFactDragStart($event, index)"
+                        @dragover.prevent="handleFactDragOver($event, index)"
+                        @dragenter.prevent="handleFactDragEnter($event, index)"
+                        @dragleave="handleFactDragLeave($event, index)"
+                        @drop="handleFactDrop($event, index)"
+                        @dragend="handleFactDragEnd($event)"
+                        :class="{'drag-over': factDragOverIndex === index, 'dragging': factDragIndex === index}">
+                      <td class="drag-handle text-center" style="cursor: grab; vertical-align: middle;">
+                        <i class="fas fa-grip-vertical text-muted"></i>
+                      </td>
                       <td>
-                        <input type="number" class="form-control form-control-sm" v-model="fact.timepoint" placeholder="1990" min="1000" max="9999" style="width: 80px;">
+                        <input type="text" class="form-control form-control-sm fact-year-input" v-model="fact.timepoint" placeholder="" style="width: 80px;">
                       </td>
                       <td>
                         <input type="text" class="form-control form-control-sm" v-model="fact.text" placeholder="Enter fact...">
@@ -431,16 +446,27 @@
                       </td>
                     </tr>
                     <tr v-if="facts.length === 0">
-                      <td colspan="4" class="text-center text-muted small">No facts added yet</td>
+                      <td colspan="5" class="text-center text-muted small">No facts added yet</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               
-              <!-- Add Fact Button -->
-              <button type="button" class="btn btn-outline-primary btn-sm" @click="addFact">
-                <i class="fas fa-plus"></i> Add Row
-              </button>
+              <!-- Add Fact and CSV Upload Buttons -->
+              <div class="d-flex align-items-center">
+                <button type="button" class="btn btn-outline-primary btn-sm mr-2" @click="addFact">
+                  <i class="fas fa-plus"></i> Add Row
+                </button>
+                <div class="ml-2">
+                  <input type="file" id="facts-csv-upload" class="d-none" @change="handleFactsCsvUpload($event)" accept=".csv">
+                  <label for="facts-csv-upload" class="btn btn-outline-secondary btn-sm mb-0" title="Upload facts from CSV">
+                    <i class="fas fa-file-csv"></i> Import CSV
+                  </label>
+                </div>
+                <a href="sample_facts.csv" download class="btn btn-link btn-sm ml-2" title="Download sample CSV">
+                  <i class="fas fa-download"></i> Sample CSV
+                </a>
+              </div>
             </div>
             
             <!-- Right side: Facts Settings (50%) -->
@@ -672,11 +698,11 @@
             valueFontFamily: 'Open Sans',
             valueFontSize: 16,
             valueColor: '#505050',
-            iconMargin: 8,
+            iconMargin: 6,
             numberPosition: 18,
-            labelPosition: 50,
+            labelPosition: 5,
             minBarLength: 100,
-            rightMargin: 150,
+            rightMargin: 440,
 
             barColorMode: 'palette', // 'palette' or 'custom'
             selectedPalette: 'default',
@@ -753,6 +779,9 @@
             factsExpanded: true,
             factTextWidth: 300,
             factFontSize: 24,
+            // Drag and drop state for facts table
+            factDragIndex: null,
+            factDragOverIndex: null,
         },
         computed: {
             previewBarWidth: function() {
@@ -1316,6 +1345,89 @@
                     reader.readAsDataURL(file);
                 }
             },
+            // Drag and drop handlers for facts table reordering
+            handleFactDragStart: function(event, index) {
+                this.factDragIndex = index;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', index);
+                // Add a slight delay to apply dragging class
+                setTimeout(() => {
+                    event.target.classList.add('dragging');
+                }, 0);
+            },
+            handleFactDragOver: function(event, index) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+            },
+            handleFactDragEnter: function(event, index) {
+                if (this.factDragIndex !== index) {
+                    this.factDragOverIndex = index;
+                }
+            },
+            handleFactDragLeave: function(event, index) {
+                // Only clear if we're leaving this specific row
+                if (this.factDragOverIndex === index) {
+                    this.factDragOverIndex = null;
+                }
+            },
+            handleFactDrop: function(event, index) {
+                event.preventDefault();
+                const fromIndex = this.factDragIndex;
+                const toIndex = index;
+                
+                if (fromIndex !== null && fromIndex !== toIndex) {
+                    // Move the item in the array
+                    const item = this.facts.splice(fromIndex, 1)[0];
+                    this.facts.splice(toIndex, 0, item);
+                }
+                
+                this.factDragIndex = null;
+                this.factDragOverIndex = null;
+            },
+            handleFactDragEnd: function(event) {
+                this.factDragIndex = null;
+                this.factDragOverIndex = null;
+                event.target.classList.remove('dragging');
+            },
+            // CSV upload handler for facts
+            handleFactsCsvUpload: function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const self = this;
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            // Clear existing facts and load from CSV
+                            self.facts = [];
+                            results.data.forEach(function(row) {
+                                // Support various column name formats
+                                const year = row.Year || row.year || row.Timepoint || row.timepoint || '';
+                                const text = row.Text || row.text || row.Fact || row.fact || row.Description || row.description || '';
+                                const image = row.Image || row.image || row.ImageUrl || row.imageUrl || row.ImageURL || '';
+                                
+                                if (year || text) {
+                                    self.facts.push({
+                                        timepoint: year.toString(),
+                                        text: text,
+                                        image: image
+                                    });
+                                }
+                            });
+                            console.log('Loaded', self.facts.length, 'facts from CSV');
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Error parsing facts CSV:', error);
+                        alert('Error parsing CSV file. Please check the format.');
+                    }
+                });
+                
+                // Reset the file input so the same file can be uploaded again
+                event.target.value = '';
+            },
             getSortedFacts: function() {
                 // Return facts sorted by year
                 // Include facts with only year (no text/image) as they act as "hide" markers
@@ -1499,7 +1611,7 @@
                     tempContainer.appendChild(tempTitle);
                     
                     // Get the actual height
-                    titleHeight = Math.max(tempTitle.offsetHeight, tempTitle.scrollHeight) + 20; // Add margin
+                    titleHeight = Math.max(tempTitle.offsetHeight, tempTitle.scrollHeight) + 10; // Add margin
                     
                     // Clean up
                     document.body.removeChild(tempContainer);
@@ -1514,6 +1626,15 @@
                 // Use exact chart dimensions for the wrapper (no extra height)
                 const totalHeight = chartHeight;
                 
+                // In recording mode, don't add left padding since the wrapper fills the entire popup
+                const leftPadding = this.isRecordingMode ? 0 : 20;
+                
+                // Calculate title space (top padding + title height if visible)
+                const titleSpace = this.showChartTitle ? (this.titleTopPadding + titleHeight) : this.titleTopPadding;
+                
+                // Chart div should fill the remaining space after title
+                const chartDivHeight = chartHeight - titleSpace;
+                
                 // Create wrapper div
                 const wrapper = document.createElement('div');
                 wrapper.className = 'recording-wrapper';
@@ -1526,7 +1647,8 @@
                     flex-direction: column;
                     align-items: center;
                     justify-content: flex-start;
-                    padding: ${this.titleTopPadding}px 0 0 20px;
+                    padding: ${this.titleTopPadding}px 0 0 ${leftPadding}px;
+                    overflow: hidden;
                 `;
                 
                 // Insert wrapper before chart div
@@ -1540,7 +1662,7 @@
                     
                     // Set the title styles based on visibility
                     chartTitle.style.cssText = `
-                        margin: 0 0 10px 0;
+                        margin: 0 0 0 0;
                         text-align: center;
                         width: 100%;
                         flex-shrink: 0;
@@ -1553,13 +1675,14 @@
                 
                 wrapper.appendChild(chartDiv);
                 
-                // Apply dimensions to chart div
+                // Apply dimensions to chart div - subtract title space so it fits
                 chartDiv.style.width = chartWidth + 'px';
-                chartDiv.style.height = chartHeight + 'px';
+                chartDiv.style.height = chartDivHeight + 'px';
                 chartDiv.style.margin = '0';
+                chartDiv.style.flexShrink = '1';
                 
                 console.log('Created wrapper with dimensions:', chartWidth, 'x', totalHeight);
-                console.log('Title height:', titleHeight, 'Timeline height:', timelineHeight, 'Extra padding:', extraPadding);
+                console.log('Title space:', titleSpace, 'Chart div height:', chartDivHeight);
                 console.log('Show chart title:', this.showChartTitle, 'Title element:', chartTitle);
                 
                 return wrapper;
@@ -2408,10 +2531,11 @@
                     .recording-mode .recording-wrapper {
                         margin: 0 !important;
                         border: none !important;
-                        /* Shift content up to show timeline at bottom */
-                        margin-top: -20px !important;
-                        /* Remove top padding */
-                        padding-top: 0 !important;
+                        /* Keep padding for proper layout - title padding should still apply */
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        padding-bottom: 0 !important;
+                        /* Allow title top padding to work */
                     }
                     /* Hide all cards EXCEPT the chart card */
                     .recording-mode .card:not(#chart-card) {
@@ -2559,6 +2683,39 @@
                         console.warn('Could not send message to popup wrapper:', e);
                     }
                 }
+            },
+            /**
+             * Load default facts from facts.csv file
+             */
+            loadDefaultFacts: function() {
+                var self = this;
+                Papa.parse('facts.csv', {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            self.facts = [];
+                            results.data.forEach(function(row) {
+                                const year = row.Year || row.year || row.Timepoint || row.timepoint || '';
+                                const text = row.Text || row.text || row.Fact || row.fact || row.Description || row.description || '';
+                                const image = row.Image || row.image || row.ImageUrl || row.imageUrl || row.ImageURL || '';
+                                
+                                if (year || text) {
+                                    self.facts.push({
+                                        timepoint: year.toString(),
+                                        text: text,
+                                        image: image
+                                    });
+                                }
+                            });
+                            console.log('Loaded', self.facts.length, 'default facts from facts.csv');
+                        }
+                    },
+                    error: function(error) {
+                        console.log('Could not load default facts.csv:', error);
+                    }
+                });
             }
         },
         mounted: function() {
@@ -2581,6 +2738,9 @@
                 // Initialize button positioning
                 this.updateButtonPositioning(this.selectedAspectRatio);
             });
+            
+            // Load default facts from facts.csv
+            this.loadDefaultFacts();
             
             // Handle window resize
             this.resizeHandler = () => {

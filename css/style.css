@@ -89,6 +89,41 @@ text.factText {
     vertical-align: middle;
 }
 
+/* Facts table drag and drop styling */
+.drag-handle {
+    cursor: grab;
+    user-select: none;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+tr.dragging {
+    opacity: 0.5;
+    background-color: #f8f9fa;
+}
+
+tr.drag-over {
+    background-color: #e3f2fd;
+    border-top: 2px solid #2196F3;
+}
+
+tr.drag-over td {
+    border-top-color: #2196F3;
+}
+
+/* Hide spinner buttons on year input */
+.fact-year-input::-webkit-outer-spin-button,
+.fact-year-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.fact-year-input {
+    -moz-appearance: textfield;
+}
+
 .xAxis > .tick line {
     shape-rendering: CrispEdges;
     stroke: #cecece;
