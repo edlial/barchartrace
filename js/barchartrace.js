@@ -49,6 +49,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     const labelTextStyle = resolvedOptions.labelTextStyle || {};
     const valueTextStyle = resolvedOptions.valueTextStyle || {};
     const customColors = resolvedOptions.colors || null;
+    const facts = resolvedOptions.facts || []; // Facts: array of {text, image, timepoint}
 
     const barEndX = (d) => x(d.value) + minBarLength; // exact end of bar (data value + minimum length)
     const hasIcon = (d) => Boolean(iconUrlByName[d.name]);
@@ -240,6 +241,247 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         .style('text-anchor', 'end')
         .html(d3.timeFormat("%B %d, %Y")(time));
 
+    // Facts feature: create elements for displaying facts
+    // Position: bottom right, above the timepoint text
+    const factPadding = 15; // px between elements
+    const factTextMaxWidth = resolvedOptions.factTextWidth || 300; // px for text wrapping
+    const factFontSize = resolvedOptions.factFontSize || 24; // px font size
+    
+    // Calculate chart aspect ratio for image scaling
+    // Reference aspect ratio is 16:9 (landscape) = ~1.78
+    const chartAspectRatio = width / height;
+    const referenceAspectRatio = 16 / 9;
+    
+    // Cache for loaded image dimensions
+    const imageCache = {};
+    
+    // Function to load and cache image dimensions
+    function loadImageDimensions(imageUrl) {
+        return new Promise((resolve) => {
+            if (imageCache[imageUrl]) {
+                resolve(imageCache[imageUrl]);
+                return;
+            }
+            const img = new Image();
+            img.onload = function() {
+                const dims = {
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight
+                };
+                imageCache[imageUrl] = dims;
+                resolve(dims);
+            };
+            img.onerror = function() {
+                // Default fallback dimensions if image fails to load
+                resolve({ naturalWidth: 100, naturalHeight: 100 });
+            };
+            img.src = imageUrl;
+        });
+    }
+    
+    // Function to calculate scaled image dimensions based on aspect ratio changes
+    function getScaledImageDimensions(naturalWidth, naturalHeight) {
+        // When aspect ratio changes significantly (e.g., 16:9 to 9:16), scale the image
+        // Scale factor based on how much the aspect ratio differs from reference
+        let scaleFactor = 1;
+        
+        // Check if aspect ratio changed significantly (portrait vs landscape)
+        const isPortrait = chartAspectRatio < 1;
+        const isReferenceLandscape = referenceAspectRatio > 1;
+        
+        if (isPortrait !== isReferenceLandscape) {
+            // Aspect ratio flipped (e.g., 16:9 to 9:16)
+            // Scale proportionally based on the ratio change
+            // For 9:16, the width is much smaller, so we scale down
+            scaleFactor = Math.min(chartAspectRatio / referenceAspectRatio, 1);
+            // But don't scale down too much - use square root to soften the scaling
+            scaleFactor = Math.sqrt(scaleFactor);
+        }
+        
+        // Return natural dimensions scaled by the factor
+        return {
+            width: Math.round(naturalWidth * scaleFactor),
+            height: Math.round(naturalHeight * scaleFactor)
+        };
+    }
+    
+    // Track current image dimensions
+    let currentImageWidth = 0;
+    let currentImageHeight = 0;
+    
+    // Create a group for fact elements
+    let factGroup = svg.append('g')
+        .attr('class', 'factGroup')
+        .style('opacity', 0); // Start hidden
+    
+    // Fact image element (positioned at bottom right, just above timeText)
+    // Initial dimensions will be set when image loads
+    let factImage = factGroup.append('image')
+        .attr('class', 'factImage')
+        .attr('x', width - 80)
+        .attr('y', height - margin.bottom - 30)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+    
+    // Fact text element (above the image)
+    let factText = factGroup.append('text')
+        .attr('class', 'factText')
+        .attr('x', width - 80) // Right-aligned with timeText
+        .attr('y', height - margin.bottom - 40 - factPadding) // Above the image
+        .style('text-anchor', 'end')
+        .style('font-size', factFontSize + 'px')
+        .style('font-weight', '600')
+        .style('fill', '#333333');
+    
+    // Variable to track current fact
+    let currentFactIndex = -1;
+    
+    // Function to get the appropriate fact for current time
+    function getFactForTime(currentTime) {
+        if (!facts || facts.length === 0) return null;
+        
+        // Get the current year from the time
+        const currentYear = currentTime.getFullYear();
+        
+        // Find the fact whose year has passed but is the most recent
+        let bestFact = null;
+        let bestFactIndex = -1;
+        
+        for (let i = 0; i < facts.length; i++) {
+            const factYear = parseInt(facts[i].timepoint);
+            if (factYear <= currentYear) {
+                // This fact's year has passed
+                if (bestFact === null || factYear > parseInt(bestFact.timepoint)) {
+                    bestFact = facts[i];
+                    bestFactIndex = i;
+                }
+            }
+        }
+        
+        // If the best matching fact has no text and no image, it's a "hide" marker
+        // Return null to hide the fact display
+        if (bestFact && !bestFact.text && !bestFact.image) {
+            return { fact: null, index: -1 };
+        }
+        
+        return { fact: bestFact, index: bestFactIndex };
+    }
+    
+    // Function to wrap text into multiple lines
+    function wrapFactText(text, maxWidth) {
+        const words = text.split(/\s+/);
+        const lines = [];
+        let currentLine = '';
+        // Approximate characters per line based on width and font size
+        const charsPerLine = Math.floor(maxWidth / (factFontSize * 0.6));
+        
+        words.forEach(word => {
+            const testLine = currentLine ? currentLine + ' ' + word : word;
+            if (testLine.length > charsPerLine) {
+                if (currentLine) lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        });
+        if (currentLine) lines.push(currentLine);
+        
+        return lines;
+    }
+    
+    // Calculate line height based on font size
+    const factLineHeight = Math.round(factFontSize * 1.3);
+    
+    // Function to update fact display
+    function updateFactDisplay(currentTime) {
+        const result = getFactForTime(currentTime);
+        
+        // Check if result is null (no facts defined) or no matching fact found
+        if (!result || !result.fact) {
+            // No fact to display - fade out the group
+            if (currentFactIndex !== -1) {
+                factGroup.transition()
+                    .duration(400)
+                    .style('opacity', 0);
+            }
+            currentFactIndex = -1;
+            return;
+        }
+        
+        // Only update if fact changed
+        if (result.index !== currentFactIndex) {
+            const isFirstFact = currentFactIndex === -1;
+            currentFactIndex = result.index;
+            
+            // Function to show the new fact
+            async function showNewFact() {
+                // Update image if present
+                if (result.fact.image) {
+                    // Load image to get natural dimensions
+                    const dims = await loadImageDimensions(result.fact.image);
+                    const scaled = getScaledImageDimensions(dims.naturalWidth, dims.naturalHeight);
+                    currentImageWidth = scaled.width;
+                    currentImageHeight = scaled.height;
+                    
+                    factImage
+                        .attr('href', result.fact.image)
+                        .attr('width', currentImageWidth)
+                        .attr('height', currentImageHeight)
+                        .attr('x', width - 80 - currentImageWidth)
+                        .attr('y', height - margin.bottom - 30 - currentImageHeight)
+                        .style('display', 'block');
+                } else {
+                    factImage.style('display', 'none');
+                    currentImageWidth = 0;
+                    currentImageHeight = 0;
+                }
+                
+                // Update text with wrapping
+                factText.selectAll('tspan').remove();
+                const lines = wrapFactText(result.fact.text, factTextMaxWidth);
+                
+                // Calculate Y position based on whether image is present
+                const imageHeight = result.fact.image ? currentImageHeight + factPadding : 0;
+                const textStartY = height - margin.bottom - 40 - imageHeight - (lines.length - 1) * factLineHeight;
+                
+                lines.forEach((line, i) => {
+                    factText.append('tspan')
+                        .attr('x', width - 80)
+                        .attr('dy', i === 0 ? 0 : factLineHeight)
+                        .text(line);
+                });
+                
+                // Adjust text position
+                factText.attr('y', textStartY);
+                
+                // Slide and fade in effect
+                factGroup
+                    .attr('transform', 'translate(20, 0)')
+                    .style('opacity', 0)
+                    .transition()
+                    .duration(500)
+                    .ease(d3.easeCubicOut)
+                    .attr('transform', 'translate(0, 0)')
+                    .style('opacity', 1);
+            }
+            
+            if (isFirstFact) {
+                // First fact - just fade in
+                showNewFact();
+            } else {
+                // Transition: fade out old, then fade in new
+                factGroup.transition()
+                    .duration(300)
+                    .ease(d3.easeCubicIn)
+                    .style('opacity', 0)
+                    .attr('transform', 'translate(-20, 0)')
+                    .on('end', showNewFact);
+            }
+        }
+    }
+    
+    // Initial fact display check
+    updateFactDisplay(time);
+
     // draw the updated graph with transitions
     function drawGraph() {
         // Update x-axis domain if dynamic scaling is enabled
@@ -413,6 +655,9 @@ function createBarChartRace(data, top_n, tickDuration, options) {
         // timeText.html(d3.timeFormat("%B %d, %Y")(time))
         // })
         timeText.html(d3.timeFormat("%B %d, %Y")(time))
+        
+        // Update fact display based on current time
+        updateFactDisplay(time);
 
     }
 

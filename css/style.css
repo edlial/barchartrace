@@ -61,6 +61,34 @@ text.timeText {
     fill: #505050;
 }
 
+/* Facts styling */
+.factGroup {
+    pointer-events: none;
+}
+
+text.factText {
+    font-weight: 600;
+    fill: #333333;
+}
+
+.factImage {
+    opacity: 1;
+}
+
+/* Facts table UI styling */
+.facts-list .table {
+    font-size: 13px;
+}
+
+.facts-list .table th {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.facts-list .table td {
+    vertical-align: middle;
+}
+
 .xAxis > .tick line {
     shape-rendering: CrispEdges;
     stroke: #cecece;

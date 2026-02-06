@@ -376,6 +376,106 @@
         </div>
       </div>
       
+      <!-- Facts Section -->
+      <div class="card border mb-4">
+        <div class="card-header" @click="factsExpanded = !factsExpanded" style="cursor: pointer;">
+          <h5 class="mb-0">
+            <i class="fas fa-lightbulb"></i> Facts
+            <i class="fas" :class="factsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'" style="float: right;"></i>
+          </h5>
+        </div>
+        <div class="card-body" v-show="factsExpanded">
+          <div class="row">
+            <!-- Left side: Facts Table (50%) -->
+            <div class="col-md-6">
+              <h6 class="mb-2"><i class="fas fa-list"></i> Facts List</h6>
+              <p class="text-muted small mb-2">Add facts that appear at specific years.</p>
+              
+              <!-- Facts Table -->
+              <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-bordered mb-2">
+                  <thead class="thead-light">
+                    <tr>
+                      <th style="width: 85px;">Year</th>
+                      <th>Text</th>
+                      <th style="width: 80px;">Image</th>
+                      <th style="width: 40px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(fact, index) in facts" :key="index">
+                      <td>
+                        <input type="number" class="form-control form-control-sm" v-model="fact.timepoint" placeholder="1990" min="1000" max="9999" style="width: 80px;">
+                      </td>
+                      <td>
+                        <input type="text" class="form-control form-control-sm" v-model="fact.text" placeholder="Enter fact...">
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <input type="file" :id="'fact-image-' + index" class="d-none" @change="handleFactImage($event, index)" accept="image/*">
+                          <label :for="'fact-image-' + index" class="btn btn-sm btn-outline-secondary mb-0" v-if="!fact.image" title="Add image">
+                            <i class="fas fa-image"></i>
+                          </label>
+                          <div v-if="fact.image" class="d-flex align-items-center">
+                            <img :src="fact.image" style="max-height: 24px; max-width: 30px; object-fit: contain;" class="border rounded">
+                            <button type="button" class="btn btn-sm btn-link text-danger p-0 ml-1" @click="fact.image = ''" title="Remove">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger" @click="removeFact(index)" title="Remove">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr v-if="facts.length === 0">
+                      <td colspan="4" class="text-center text-muted small">No facts added yet</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Add Fact Button -->
+              <button type="button" class="btn btn-outline-primary btn-sm" @click="addFact">
+                <i class="fas fa-plus"></i> Add Row
+              </button>
+            </div>
+            
+            <!-- Right side: Facts Settings (50%) -->
+            <div class="col-md-6">
+              <h6 class="mb-2"><i class="fas fa-cog"></i> Facts Display Settings</h6>
+              <p class="text-muted small mb-3">Configure how facts appear on the chart.</p>
+              
+              <div class="form-group">
+                <label for="factTextWidth">Text Width (px)</label>
+                <div class="d-flex align-items-center">
+                  <input type="range" class="form-control-range" id="factTextWidth" v-model="factTextWidth" min="250" max="550" step="10">
+                  <span class="ml-2 badge badge-secondary" style="min-width: 50px;">(( factTextWidth ))px</span>
+                </div>
+                <small class="form-text text-muted">Maximum width for fact text wrapping</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="factFontSize">Font Size (px)</label>
+                <div class="d-flex align-items-center">
+                  <input type="range" class="form-control-range" id="factFontSize" v-model="factFontSize" min="20" max="40" step="1">
+                  <span class="ml-2 badge badge-secondary" style="min-width: 50px;">(( factFontSize ))px</span>
+                </div>
+                <small class="form-text text-muted">Font size for fact text on chart</small>
+              </div>
+              
+              <div v-if="facts.length > 0" class="mt-3 p-2 bg-light rounded">
+                <small class="text-muted">
+                  <i class="fas fa-info-circle"></i> Facts appear when the chart year matches. Each fact replaces the previous one.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div id="chart-card" class="card">
         <div class="card-body position-relative">
           <div class="d-flex justify-content-between align-items-center mb-4">
@@ -647,6 +747,12 @@
             recordingPopup: null,
             recordingPopupReady: false,
             recordingPopupAspectRatio: null,  // Which aspect ratio the popup was opened with
+            
+            // Facts Feature - list of (text, image, timepoint) tuples
+            facts: [],
+            factsExpanded: true,
+            factTextWidth: 300,
+            factFontSize: 24,
         },
         computed: {
             previewBarWidth: function() {
@@ -1125,6 +1231,9 @@
                                 fill: self.valueColor
                             },
                             colors: self.getBarColors(),
+                            facts: self.getSortedFacts(),
+                            factTextWidth: self.factTextWidth,
+                            factFontSize: self.factFontSize,
                             // Callback when chart animation completes
                             onComplete: function() {
                                 console.log('Chart race completed!');
@@ -1185,6 +1294,34 @@
             },
             removeCustomColor: function(index) {
                 this.customColors.splice(index, 1);
+            },
+            // Facts Methods
+            addFact: function() {
+                this.facts.push({
+                    text: '',
+                    image: '',
+                    timepoint: ''
+                });
+            },
+            removeFact: function(index) {
+                this.facts.splice(index, 1);
+            },
+            handleFactImage: function(event, index) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.facts[index].image = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            },
+            getSortedFacts: function() {
+                // Return facts sorted by year
+                // Include facts with only year (no text/image) as they act as "hide" markers
+                return this.facts.filter(f => f.timepoint).sort((a, b) => {
+                    return parseInt(a.timepoint) - parseInt(b.timepoint);
+                });
             },
             getBarColors: function() {
                 if (this.barColorMode === 'custom') {
@@ -1965,6 +2102,11 @@
                     colors: this.getBarColors(),
                     backgroundColor: 'white',
                     
+                    // Facts
+                    facts: this.getSortedFacts(),
+                    factTextWidth: this.factTextWidth,
+                    factFontSize: this.factFontSize,
+                    
                     // Aspect ratio info
                     aspectRatio: this.getCurrentAspectRatio()
                 };
@@ -2378,6 +2520,13 @@
                 if (config.icons) {
                     settings.iconsByCategory = config.icons;
                 }
+                
+                // Apply facts
+                if (config.facts) {
+                    this.facts = config.facts;
+                }
+                if (config.factTextWidth) this.factTextWidth = config.factTextWidth;
+                if (config.factFontSize) this.factFontSize = config.factFontSize;
                 
                 // Wait for Vue to update, then apply aspect ratio and start chart
                 this.$nextTick(function() {
