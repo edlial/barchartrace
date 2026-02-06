@@ -236,7 +236,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
 
     let timeText = svg.append('text')
         .attr('class', 'timeText')
-        .attr('x', width - 80) // Fixed right margin for date text
+        .attr('x', width - 20) // Fixed right margin for date text
         .attr('y', height - margin.bottom - 5)
         .style('text-anchor', 'end')
         .html(d3.timeFormat("%B %d, %Y")(time));
@@ -318,14 +318,14 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     // Initial dimensions will be set when image loads
     let factImage = factGroup.append('image')
         .attr('class', 'factImage')
-        .attr('x', width - 80)
+        .attr('x', width - 20)
         .attr('y', height - margin.bottom - 30)
         .attr('preserveAspectRatio', 'xMidYMid meet');
     
     // Fact text element (above the image)
     let factText = factGroup.append('text')
         .attr('class', 'factText')
-        .attr('x', width - 80) // Right-aligned with timeText
+        .attr('x', width - 20) // Right-aligned with timeText
         .attr('y', height - margin.bottom - 40 - factPadding) // Above the image
         .style('text-anchor', 'end')
         .style('font-size', factFontSize + 'px')
@@ -426,7 +426,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
                         .attr('href', result.fact.image)
                         .attr('width', currentImageWidth)
                         .attr('height', currentImageHeight)
-                        .attr('x', width - 80 - currentImageWidth)
+                        .attr('x', width - 20 - currentImageWidth)
                         .attr('y', height - margin.bottom - 30 - currentImageHeight)
                         .style('display', 'block');
                 } else {
@@ -445,7 +445,7 @@ function createBarChartRace(data, top_n, tickDuration, options) {
                 
                 lines.forEach((line, i) => {
                     factText.append('tspan')
-                        .attr('x', width - 80)
+                        .attr('x', width - 20)
                         .attr('dy', i === 0 ? 0 : factLineHeight)
                         .text(line);
                 });
