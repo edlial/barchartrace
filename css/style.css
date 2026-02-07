@@ -1277,7 +1277,7 @@ select.form-control option[value="Wingdings"] { font-family: Wingdings, sans-ser
     align-items: center;
     justify-content: flex-start;
     min-height: 200px;
-    padding: 20px 0 20px 20px; /* Top and left padding for recording area */
+    padding: 0 0 20px 20px; /* No top padding - JS controls it for recording mode */
 }
 
 .recording-wrapper #graph-title {

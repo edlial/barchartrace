@@ -4,14 +4,27 @@ function createBarChartRace(data, top_n, tickDuration, options) {
     chartDiv.textContent = '';
     let width = chartDiv.clientWidth;
     let height = chartDiv.clientHeight - 50;
+    
+    console.log('=== BarChartRace Dimensions ===');
+    console.log('chartDiv.clientWidth:', chartDiv.clientWidth);
+    console.log('chartDiv.clientHeight:', chartDiv.clientHeight);
+    console.log('Main SVG height:', height);
+    console.log('Timeline SVG height: 50');
+    console.log('Total height needed:', height + 50);
 
     let svg = d3.select(chartDiv).append("svg")
         .attr("width", width)
-        .attr("height", height);
+        .attr("height", height)
+        .style("display", "block")
+        .style("margin", "0")
+        .style("padding", "0");
 
     let timeline_svg = d3.select(chartDiv).append("svg")
         .attr("width", width)
-        .attr("height", 50);
+        .attr("height", 50)
+        .style("display", "block")
+        .style("margin", "0")
+        .style("padding", "0");
 
     // Read iconsLeftOfAxis option
     const iconsLeftOfAxis = options && options.iconsLeftOfAxis === true;

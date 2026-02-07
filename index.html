@@ -1477,6 +1477,7 @@
                 return this.aspectRatios[this.selectedAspectRatio];
             },
             applyAspectRatioToChart: function() {
+                console.log('=== applyAspectRatioToChart called, isRecordingMode:', this.isRecordingMode);
                 const aspectRatio = this.getCurrentAspectRatio();
                 
                 // Get the chart container (either chartDiv or its wrapper)
@@ -1608,10 +1609,18 @@
                     document.body.appendChild(tempContainer);
                     
                     const tempTitle = chartTitle.cloneNode(true);
+                    // Apply same styles as we will apply to the real title
+                    tempTitle.style.margin = '0';
+                    tempTitle.style.padding = '0';
+                    if (this.isRecordingMode) {
+                        tempTitle.style.lineHeight = '1';
+                    }
                     tempContainer.appendChild(tempTitle);
                     
                     // Get the actual height
-                    titleHeight = Math.max(tempTitle.offsetHeight, tempTitle.scrollHeight) + 10; // Add margin
+                    // In recording mode, no extra margin. On main page, add small margin
+                    const titleMargin = this.isRecordingMode ? 0 : 10;
+                    titleHeight = Math.max(tempTitle.offsetHeight, tempTitle.scrollHeight) + titleMargin;
                     
                     // Clean up
                     document.body.removeChild(tempContainer);
@@ -1629,25 +1638,44 @@
                 // In recording mode, don't add left padding since the wrapper fills the entire popup
                 const leftPadding = this.isRecordingMode ? 0 : 20;
                 
-                // Calculate title space (top padding + title height if visible)
-                const titleSpace = this.showChartTitle ? (this.titleTopPadding + titleHeight) : this.titleTopPadding;
+                // In recording mode, no top padding - content starts at top of iframe
+                // On main page, use titleTopPadding for the recording area visualization
+                const topPadding = this.isRecordingMode ? 0 : this.titleTopPadding;
+                
+                // Calculate title space - in recording mode, only title height matters (no padding)
+                // On main page, include titleTopPadding in the calculation
+                const titleSpace = this.showChartTitle 
+                    ? (topPadding + titleHeight) 
+                    : topPadding;
                 
                 // Chart div should fill the remaining space after title
+                // Add extra space to ensure timeline is fully visible (timeline SVG is 50px)
                 const chartDivHeight = chartHeight - titleSpace;
+                
+                // Debug logging
+                console.log('=== Height Calculation Debug ===');
+                console.log('chartHeight:', chartHeight);
+                console.log('titleSpace:', titleSpace);
+                console.log('titleHeight:', titleHeight);
+                console.log('topPadding:', topPadding);
+                console.log('chartDivHeight:', chartDivHeight);
+                console.log('isRecordingMode:', this.isRecordingMode);
                 
                 // Create wrapper div
                 const wrapper = document.createElement('div');
                 wrapper.className = 'recording-wrapper';
                 wrapper.style.cssText = `
                     position: relative;
+                    box-sizing: border-box;
                     width: ${chartWidth}px;
                     height: ${totalHeight}px;
                     margin: 0 auto;
                     display: flex;
                     flex-direction: column;
-                    align-items: center;
+                    align-items: stretch;
                     justify-content: flex-start;
-                    padding: ${this.titleTopPadding}px 0 0 ${leftPadding}px;
+                    gap: 0;
+                    padding: ${topPadding}px 0 0 ${leftPadding}px !important;
                     overflow: hidden;
                 `;
                 
@@ -1661,14 +1689,22 @@
                     wrapper.appendChild(chartTitle);
                     
                     // Set the title styles based on visibility
-                    chartTitle.style.cssText = `
-                        margin: 0 0 0 0;
-                        text-align: center;
-                        width: 100%;
-                        flex-shrink: 0;
-                        display: ${this.showChartTitle ? 'block' : 'none'};
-                        visibility: ${this.showChartTitle ? 'visible' : 'hidden'};
-                    `;
+                    // Note: using !important to override CSS .recording-wrapper #graph-title margin-bottom
+                    chartTitle.style.setProperty('margin', '0', 'important');
+                    chartTitle.style.setProperty('margin-top', '0', 'important');
+                    chartTitle.style.setProperty('margin-bottom', '0', 'important');
+                    chartTitle.style.setProperty('padding', '0', 'important');
+                    chartTitle.style.setProperty('padding-top', '0', 'important');
+                    chartTitle.style.setProperty('padding-bottom', '0', 'important');
+                    chartTitle.style.setProperty('text-align', 'center', 'important');
+                    chartTitle.style.setProperty('width', '100%', 'important');
+                    chartTitle.style.setProperty('flex-shrink', '0', 'important');
+                    chartTitle.style.setProperty('display', this.showChartTitle ? 'block' : 'none', 'important');
+                    chartTitle.style.setProperty('visibility', this.showChartTitle ? 'visible' : 'hidden', 'important');
+                    // In recording mode, use tight line-height and remove all spacing
+                    if (this.isRecordingMode) {
+                        chartTitle.style.setProperty('line-height', '1', 'important');
+                    }
                 } else {
                     console.log('No chart title element found');
                 }
@@ -1676,10 +1712,20 @@
                 wrapper.appendChild(chartDiv);
                 
                 // Apply dimensions to chart div - subtract title space so it fits
-                chartDiv.style.width = chartWidth + 'px';
-                chartDiv.style.height = chartDivHeight + 'px';
-                chartDiv.style.margin = '0';
-                chartDiv.style.flexShrink = '1';
+                // Use setProperty with !important to override CSS .recording-wrapper #chartDiv flex and min-height
+                chartDiv.style.setProperty('width', chartWidth + 'px', 'important');
+                chartDiv.style.setProperty('height', chartDivHeight + 'px', 'important');
+                chartDiv.style.setProperty('max-height', chartDivHeight + 'px', 'important');
+                chartDiv.style.setProperty('margin', '0', 'important');
+                chartDiv.style.setProperty('padding', '0', 'important');
+                chartDiv.style.setProperty('flex', '0 0 auto', 'important');
+                chartDiv.style.setProperty('flex-shrink', '0', 'important');
+                chartDiv.style.setProperty('flex-grow', '0', 'important');
+                chartDiv.style.setProperty('min-height', '0', 'important');
+                chartDiv.style.setProperty('box-sizing', 'border-box', 'important');
+                chartDiv.style.setProperty('overflow', 'visible', 'important');
+                chartDiv.style.setProperty('line-height', '0', 'important'); // Eliminate spacing between SVGs
+                chartDiv.style.setProperty('font-size', '0', 'important'); // Eliminate spacing between SVGs
                 
                 console.log('Created wrapper with dimensions:', chartWidth, 'x', totalHeight);
                 console.log('Title space:', titleSpace, 'Chart div height:', chartDivHeight);
@@ -2479,86 +2525,83 @@
             },
             
             /**
-             * Hide all UI elements for recording mode
+             * Hide all UI elements for recording mode by removing them from DOM
              */
             hideUIForRecording: function() {
-                // Add recording mode class to body for CSS hiding
+                // Add recording mode class to body
                 document.body.classList.add('recording-mode');
+                document.documentElement.classList.add('recording-mode');
                 
-                // Apply inline styles to ensure elements are hidden
+                // Apply minimal styles for recording mode
                 var style = document.createElement('style');
                 style.id = 'recording-mode-styles';
                 style.textContent = `
-                /* FORCE NO SCROLLBARS AND FULL SIZE */
-                html.recording-mode,
-                body.recording-mode {
-                    overflow: hidden !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                }
-                
-                .recording-mode #main-title,
-                    .recording-mode .card-header,
-                    .recording-mode .github-corner,
-                    .recording-mode .chart-controls,
-                    .recording-mode .modal,
-                    .recording-mode .recording-visualization {
-                        display: none !important;
+                    html.recording-mode,
+                    body.recording-mode {
+                        overflow: hidden !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
                     }
                     .recording-mode .main-content {
                         padding: 0 !important;
                         margin: 0 !important;
                     }
-                    .recording-mode .container-fluid {
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        max-width: 100% !important;
-                    }
-                    .recording-mode .section {
-                        padding: 0 !important;
-                        margin: 0 !important;
-                    }
-                    .recording-mode #chart-card {
-                        border: none !important;
-                        margin: 0 !important;
-                        box-shadow: none !important;
-                    }
-                    .recording-mode #chart-card .card-body {
-                        padding: 0 !important;
-                    }
                     .recording-mode .recording-wrapper {
                         margin: 0 !important;
+                        padding: 0 !important;
                         border: none !important;
-                        /* Keep padding for proper layout - title padding should still apply */
-                        padding-left: 0 !important;
-                        padding-right: 0 !important;
-                        padding-bottom: 0 !important;
-                        /* Allow title top padding to work */
-                    }
-                    /* Hide all cards EXCEPT the chart card */
-                    .recording-mode .card:not(#chart-card) {
-                        display: none !important;
-                    }
-                    .recording-mode hr {
-                        display: none !important;
-                    }
-                    /* HIDE ELEMENTS FOR CLEAN RECORDING */
-                    .recording-mode .aspect-ratio-controls-left {
-                        display: none !important;
-                    }
-                    .recording-mode .aspect-ratio-visualization {
-                        display: none !important;
-                    }
-                    .recording-mode .aspect-ratio-visualization::before {
-                        display: none !important;
-                    }
-                    .recording-mode .aspect-ratio-visualization::after {
-                        display: none !important;
                     }
                 `;
                 document.head.appendChild(style);
+                
+                // Get the elements we need to keep
+                var chartDiv = document.getElementById('chartDiv');
+                var graphTitle = document.getElementById('graph-title');
+                
+                if (!chartDiv) {
+                    console.error('chartDiv not found in recording mode');
+                    return;
+                }
+                
+                // Create a clean container for recording
+                var recordingContainer = document.createElement('div');
+                recordingContainer.id = 'recording-container';
+                recordingContainer.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden;
+                    background: white;
+                `;
+                
+                // Move the title and chart to the clean container
+                if (graphTitle) {
+                    graphTitle.style.cssText += `
+                        text-align: center !important;
+                        width: 100% !important;
+                        display: block !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    `;
+                    recordingContainer.appendChild(graphTitle);
+                }
+                recordingContainer.appendChild(chartDiv);
+                
+                // Clear the body and add only the recording container
+                document.body.innerHTML = '';
+                document.body.appendChild(recordingContainer);
+                
+                // Re-mount Vue on the new elements - we need to keep Vue reactive
+                // The elements are already bound to Vue, so we just need to make sure
+                // the app element reference is updated
+                console.log('Recording mode: DOM cleaned, only chart elements remain');
             },
             
             /**
@@ -2599,6 +2642,7 @@
              */
             handleRecordingInit: function(config) {
                 var self = this;
+                console.log('=== handleRecordingInit called ===');
                 console.log('Recording mode: Initializing with config', config);
                 
                 // Apply all config values to Vue data
@@ -2610,7 +2654,7 @@
                 if (config.titleFontFamily) this.titleFontFamily = config.titleFontFamily;
                 if (config.titleFontSize) this.titleFontSize = config.titleFontSize;
                 if (config.titleColor) this.titleColor = config.titleColor;
-                if (config.titleTopPadding) this.titleTopPadding = config.titleTopPadding;
+                if (config.titleTopPadding !== undefined) this.titleTopPadding = config.titleTopPadding;
                 if (config.labelFontFamily) this.labelFontFamily = config.labelFontFamily;
                 if (config.labelFontSize) this.labelFontSize = config.labelFontSize;
                 if (config.labelColor) this.labelColor = config.labelColor;
@@ -2723,7 +2767,12 @@
             
             // Check if we're in recording mode (loaded inside popup iframe)
             const urlParams = new URLSearchParams(window.location.search);
-            this.isRecordingMode = urlParams.get('mode') === 'recording';
+            const modeParam = urlParams.get('mode');
+            console.log('=== Vue mounted ===');
+            console.log('window.location.href:', window.location.href);
+            console.log('mode param:', modeParam);
+            this.isRecordingMode = modeParam === 'recording';
+            console.log('isRecordingMode set to:', this.isRecordingMode);
             
             if (this.isRecordingMode) {
                 console.log('Running in RECORDING MODE (inside popup iframe)');
